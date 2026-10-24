@@ -27,3 +27,13 @@ It's a static site. Open `index.html` through any web server, or use the GitHub 
 
 - *Pixel Life: Office Essentials* by Chris Perich — CC BY 4.0
 - *Pixel Office* by 2dPig — CC0
+
+## Saves and notes
+
+- Progress saves under one fixed key and is upgraded in place by `migrate()` in `js/game.js`, so new versions never wipe it. Items are keyed by stable ids from `js/content.js`.
+- On the claude.ai artifact version, progress also saves to the artifact database (`saves/<viewer>`), and 📝 notes go to `feedback/<id>` for review.
+- Menu → Backup or restore progress gives a code to move progress between devices or between the GitHub and claude.ai versions.
+
+## Pitch Day
+
+Once a day (plus a bonus when all reviews are cleared) a big client hears 5 questions from the full Equity bank. Right answers win AUM. A question answered right on two different days becomes a deal tombstone; tombstones unlock gear and are needed for office moves.

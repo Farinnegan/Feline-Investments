@@ -10,24 +10,28 @@ window.Scene = (function () {
 
   // Office tiers. Coordinates in tiles. desks: top-left of the desk cell.
   // decor: [sprite, x, footLineY]
+  // Portrait rooms so the office fills a phone screen. Desk capacity: 3, 6, 10, 16.
   const LAYOUTS = [
-    { name: "Home Office", w: 6, h: 6, floor: "marble", door: { col: 4, type: "single-glass-office-door" },
-      ceo: { x: 3.4, y: 1.95, desk: "compact-study-desk" }, deskType: "compact-study-desk",
-      desks: [{ x: 0.9, y: 3.75 }],
-      decor: [["tall-bookcase", 0.1, 1.45], ["low-cabinet", 1.15, 1.45], ["office-plant", 5.05, 1.45], ["potted-plant", 5.0, 5.9]] },
-    { name: "Small Office", w: 7, h: 7, floor: "navy", door: { col: 5, type: "single-glass-office-door" },
-      ceo: { x: 4.4, y: 1.95, desk: "straight-trading-desk" }, deskType: "compact-study-desk",
-      desks: [{ x: 0.5, y: 3.75 }, { x: 2.05, y: 3.75 }, { x: 3.6, y: 3.75 }],
-      decor: [["tall-bookcase", 0.1, 1.45], ["low-cabinet", 1.15, 1.45], ["office-plant", 2.3, 1.45], ["office-plant", 6.05, 1.45], ["potted-plant", 6.0, 6.9], ["study-book-stack", 0.2, 6.9]] },
-    { name: "Downtown Floor", w: 8, h: 8, floor: "marble", door: { col: 4, type: "double-glass-entry-door" }, windows: [1, 2, 6],
-      ceo: { x: 6.0, y: 1.95, desk: "curved-trading-desk" }, deskType: "straight-trading-desk",
-      desks: [{ x: 0.5, y: 3.75 }, { x: 2.05, y: 3.75 }, { x: 3.6, y: 3.75 }, { x: 5.15, y: 3.75 }, { x: 0.5, y: 5.75 }, { x: 2.05, y: 5.75 }],
-      decor: [["office-plant", 0.1, 1.45], ["low-cabinet", 1.2, 1.45], ["tall-bookcase", 2.4, 1.45], ["reception-counter", 3.4, 1.55], ["potted-plant", 7.05, 7.9], ["office-plant", 4.4, 7.9]] },
-    { name: "Skyscraper HQ", w: 8, h: 8, floor: "navy", door: { col: 4, type: "double-glass-entry-door" }, windows: [1, 2, 3, 5, 6], columns: [0, 7],
-      ceo: { x: 6.4, y: 1.95, desk: "curved-trading-desk" }, deskType: "curved-trading-desk",
-      desks: [{ x: 0.5, y: 3.75 }, { x: 2.0, y: 3.75 }, { x: 3.5, y: 3.75 }, { x: 5.0, y: 3.75 },
-              { x: 0.5, y: 5.75 }, { x: 2.0, y: 5.75 }, { x: 3.5, y: 5.75 }, { x: 5.0, y: 5.75 }],
-      decor: [["low-cabinet", 1.1, 1.45], ["crystal-championship-trophy", 1.1, 1.0], ["tall-bookcase", 2.3, 1.45], ["reception-counter", 5.2, 1.55], ["office-plant", 0.1, 1.45], ["potted-plant", 7.05, 7.9], ["office-plant", 6.6, 5.6], ["office-plant", 6.6, 7.6]] }
+    { name: "Home Office", w: 6, h: 9, floor: "marble", door: { col: 4, type: "single-glass-office-door" },
+      ceo: { x: 3.9, y: 2.0, desk: "compact-study-desk" }, deskType: "compact-study-desk",
+      desks: [{ x: 0.45, y: 4.3 }, { x: 2.2, y: 4.3 }, { x: 3.95, y: 4.3 }],
+      decor: [["tall-bookcase", 0.1, 1.45], ["low-cabinet", 1.15, 1.45], ["office-plant", 5.05, 1.45],
+              ["potted-plant", 0.1, 8.9], ["study-book-stack", 1.2, 8.9], ["low-cabinet", 3.7, 8.9], ["office-plant", 5.0, 8.9]] },
+    { name: "Small Office", w: 7, h: 10, floor: "navy", door: { col: 5, type: "single-glass-office-door" },
+      ceo: { x: 4.6, y: 2.0, desk: "straight-trading-desk" }, deskType: "compact-study-desk",
+      desks: [{ x: 0.5, y: 4.3 }, { x: 2.25, y: 4.3 }, { x: 4.0, y: 4.3 }, { x: 0.5, y: 6.7 }, { x: 2.25, y: 6.7 }, { x: 4.0, y: 6.7 }],
+      decor: [["tall-bookcase", 0.1, 1.45], ["low-cabinet", 1.15, 1.45], ["office-plant", 2.3, 1.45], ["office-plant", 6.05, 1.45],
+              ["potted-plant", 6.0, 9.9], ["study-book-stack", 0.2, 9.9], ["low-cabinet", 2.6, 9.9], ["office-plant", 6.1, 5.6]] },
+    { name: "Downtown Floor", w: 8, h: 12, floor: "marble", door: { col: 4, type: "double-glass-entry-door" }, windows: [1, 2, 6],
+      ceo: { x: 6.0, y: 2.0, desk: "curved-trading-desk" }, deskType: "straight-trading-desk",
+      desks: [0, 1, 2].flatMap(r => [0.5, 2.15, 3.8, 5.45].map(x => ({ x, y: 4.3 + r * 2.4 }))).slice(0, 10),
+      decor: [["office-plant", 0.1, 1.45], ["low-cabinet", 1.2, 1.45], ["tall-bookcase", 2.4, 1.45], ["reception-counter", 3.4, 1.55],
+              ["potted-plant", 7.05, 11.9], ["office-plant", 0.1, 11.9], ["low-cabinet", 3.5, 11.9], ["office-plant", 7.1, 6.0]] },
+    { name: "Skyscraper HQ", w: 9, h: 13, floor: "navy", door: { col: 4, type: "double-glass-entry-door" }, windows: [1, 2, 3, 5, 6, 7], columns: [0, 8],
+      ceo: { x: 7.0, y: 2.0, desk: "curved-trading-desk" }, deskType: "curved-trading-desk",
+      desks: [0, 1, 2, 3].flatMap(r => [0.5, 2.2, 3.9, 5.6].map(x => ({ x, y: 4.3 + r * 2.3 }))),
+      decor: [["low-cabinet", 1.1, 1.45], ["crystal-championship-trophy", 1.1, 1.0], ["tall-bookcase", 2.3, 1.45], ["reception-counter", 5.2, 1.55],
+              ["office-plant", 0.1, 1.45], ["potted-plant", 8.05, 12.9], ["office-plant", 7.6, 6.0], ["office-plant", 7.6, 9.0], ["office-plant", 0.1, 12.9]] }
   ];
 
   let canvas, ctx, overlay, wrap;
@@ -36,11 +40,12 @@ window.Scene = (function () {
   const M = 12; // margin around room (art px)
   let staff = [], ceo = null, client = null;
   let t = 0, last = 0, particles = [];
-  let onStaffTap = null, onCeoTap = null;
+  let tombs = 0, gear = [];
+  let onStaffTap = null, onCeoTap = null, insetFn = null;
 
   function init(opts) {
     wrap = opts.wrap; canvas = opts.canvas; overlay = opts.overlay;
-    onStaffTap = opts.onStaffTap; onCeoTap = opts.onCeoTap;
+    onStaffTap = opts.onStaffTap; onCeoTap = opts.onCeoTap; insetFn = opts.bottomInset;
     ctx = canvas.getContext("2d");
     window.addEventListener("resize", resize);
     canvas.addEventListener("pointerdown", handleTap);
@@ -49,7 +54,7 @@ window.Scene = (function () {
   }
 
   function resize() {
-    const w = wrap.clientWidth, h = Math.round(w * VH / VW);
+    const w = wrap.clientWidth, h = Math.max(200, wrap.clientHeight);
     DPR = window.devicePixelRatio || 1;
     canvas.width = Math.round(w * DPR); canvas.height = Math.round(h * DPR);
     canvas.style.width = w + "px"; canvas.style.height = h + "px";
@@ -60,24 +65,27 @@ window.Scene = (function () {
   function camera() {
     if (!canvas) return;
     const W = layout.w * T + M * 2, H = layout.h * T + M * 2;
-    P = Math.max(1, Math.floor(Math.min(canvas.width / W, canvas.height / H)));
+    const inset = Math.round((insetFn ? insetFn() : 0) * DPR); // keep the office clear of the stats card
+    const usableH = canvas.height - inset;
+    P = Math.max(1, Math.floor(Math.min(canvas.width / W, usableH / H)));
     OXd = Math.round((canvas.width - W * P) / 2);
-    OYd = Math.round((canvas.height - H * P) / 2);
+    OYd = Math.max(0, Math.round((usableH - H * P) / 2));
   }
 
   function setOffice(newTier, staffList) {
     tier = Math.min(newTier, LAYOUTS.length - 1);
     layout = LAYOUTS[tier];
     camera();
-    ceo = { animal: "black-cat", jump: 0 };
-    staff = staffList.map(s => ({ animal: s.animal, mood: "ok", jump: 0, name: s.name }));
+    staff = staffList.map(s => ({ species: s.species, v: s.v, mood: "ok", jump: 0, name: s.name }));
   }
+  function setCeo(v) { ceo = { species: "black-cat", v: v || 0, jump: 0, ceo: true }; }
+  function setTrophies(n, g) { tombs = n; gear = g || []; }
   function setMoods(moods) { moods.forEach((m, i) => { if (staff[i]) staff[i].mood = m; }); }
 
   // ---------- coordinates (art px, room origin = M,M) ----------
   const rx = x => M + Math.round(x * T), ry = y => M + Math.round(y * T);
   function deskPos(i) { const d = layout.desks[i]; return { x: rx(d.x), y: ry(d.y) }; }
-  function seatOf(dx, dy, deskName) { return { x: dx + (deskName === "compact-study-desk" ? 7 : 0), y: dy - 17 }; }
+  function seatOf(dx, dy, deskName) { return { x: dx + (deskName === "compact-study-desk" ? 7 : 0), y: dy - 19 }; }
   function staffAnchor(i) { const d = deskPos(i); return seatOf(d.x, d.y, layout.deskType); }
   function ceoAnchor() { return seatOf(rx(layout.ceo.x), ry(layout.ceo.y), layout.ceo.desk); }
   function toCss(x, y) { return { x: (OXd + x * P) / DPR, y: (OYd + y * P) / DPR }; }
@@ -134,6 +142,20 @@ window.Scene = (function () {
     ctx.fillStyle = "#c2bebc"; ctx.fillRect(M, M + T - 2, W, 2);           // baseboard
     ctx.fillStyle = "#00000022"; ctx.fillRect(M, M + T, W, 3);             // wall shadow on floor
     ctx.fillStyle = "#585e6f"; ctx.fillRect(M, M - 3, W, 3);               // top trim
+    // deal tombstones: little gold plaques along the wall, skipping doors and windows
+    const blocked = new Set([layout.door.col].concat(layout.windows || [], layout.columns || []));
+    let placed = 0;
+    for (let row = 0; row < 2 && placed < tombs; row++) {
+      for (let x = 4; x + 6 <= W - 4 && placed < tombs; x += 8) {
+        const col = Math.floor((x + 3) / T);
+        if (blocked.has(col)) continue;
+        const px = M + x, py = M + 3 + row * 9;
+        ctx.fillStyle = "#0b1120"; ctx.fillRect(px, py, 6, 8);
+        ctx.fillStyle = "#e8b43a"; ctx.fillRect(px + 1, py + 1, 4, 6);
+        ctx.fillStyle = "#1d3255"; ctx.fillRect(px + 2, py + 2, 2, 2);
+        placed++;
+      }
+    }
     // outer frame
     ctx.fillStyle = "#0b1120";
     ctx.fillRect(M - 3, M - 3, 3, H + 6); ctx.fillRect(M + W, M - 3, 3, H + 6);
@@ -148,8 +170,8 @@ window.Scene = (function () {
     const hop = Math.round(Math.sin(who.jump * Math.PI) * 7);
     items.push({ y: dy - 1, fn: () => Sprites.draw(ctx, "office-chair-front", a.x, dy - 15) });
     items.push({ y: dy, fn: () => {
-      Sprites.draw(ctx, who.animal, a.x, a.y + bob - hop);
-      if (who === ceo) crown(a.x, a.y + bob - hop);
+      Sprites.cow(ctx, who.species, who.v, a.x, a.y + bob - hop);
+      if (who.ceo) crown(a.x, a.y + bob - hop);
     } });
     items.push({ y: dy + 1, fn: () => Sprites.draw(ctx, deskName, dx, dy) });
     return items;
@@ -173,8 +195,14 @@ window.Scene = (function () {
       const fy = ry(foot);
       items.push({ y: fy, fn: () => Sprites.draw(ctx, name, rx(x), fy - (BOTTOM[name] || 30)) });
     });
+    // Pitch Day gear sits in a row near the bottom of the office
+    gear.forEach((name, k) => {
+      const gx = 0.35 + k * 1.1, foot = layout.h - 1.35;
+      const fy = ry(foot);
+      items.push({ y: fy, fn: () => Sprites.draw(ctx, name, rx(gx), fy - (BOTTOM[name] || 30)) });
+    });
     const cd = { x: rx(layout.ceo.x), y: ry(layout.ceo.y) };
-    items = items.concat(drawSeated(ceo, ceoAnchor(), layout.ceo.desk, cd.x, cd.y, 9));
+    if (ceo) items = items.concat(drawSeated(ceo, ceoAnchor(), layout.ceo.desk, cd.x, cd.y, 9));
     layout.desks.forEach((d, i) => {
       const dp = deskPos(i);
       if (staff[i]) items = items.concat(drawSeated(staff[i], staffAnchor(i), layout.deskType, dp.x, dp.y, i));
@@ -242,6 +270,17 @@ window.Scene = (function () {
     client.onArrive = () => { client = null; };
   }
 
+  // what is under a screen point, for feedback notes
+  function describeAt(clientX, clientY) {
+    const r = canvas.getBoundingClientRect();
+    const x = ((clientX - r.left) * DPR - OXd) / P, y = ((clientY - r.top) * DPR - OYd) / P;
+    const hit = a => x >= a.x + 4 && x <= a.x + 28 && y >= a.y && y <= a.y + 46;
+    for (let i = 0; i < staff.length; i++) if (hit(staffAnchor(i))) return { label: "Office: " + staff[i].name + " (desk " + (i + 1) + ")", element: "scene" };
+    if (hit(ceoAnchor())) return { label: "Office: the CEO (you)", element: "scene" };
+    const tx = ((x - M) / T).toFixed(1), ty = ((y - M) / T).toFixed(1);
+    return { label: `Office: ${layout.name}, tile ${tx}, ${ty}${ty < 1 ? " (back wall)" : ""}`, element: "scene", tile: [+tx, +ty] };
+  }
+
   // ---------- taps ----------
   function handleTap(e) {
     const r = canvas.getBoundingClientRect();
@@ -251,5 +290,5 @@ window.Scene = (function () {
     if (hit(ceoAnchor())) onCeoTap && onCeoTap();
   }
 
-  return { init, setOffice, setMoods, reward, staffSay, ceoCheer, clientVisit, clientLeave, floatText, resize, LAYOUTS };
+  return { init, setOffice, setCeo, setTrophies, describeAt, setMoods, reward, staffSay, ceoCheer, clientVisit, clientLeave, floatText, resize, LAYOUTS };
 })();

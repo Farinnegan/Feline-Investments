@@ -1,0 +1,47 @@
+<title>Feline Investments</title>
+<link rel="stylesheet" href="css/style.css">
+<style>html, body { height: 100%; } body { background: #0e1626; }</style>
+<div id="app">
+    <header id="topbar">
+      <div id="countdown"><b>D-0</b><small>to exam</small></div>
+      <div id="firmname">Feline Investments</div>
+      <div class="right"><button id="report" aria-label="Report to Claude">📝</button><div id="cash">$0</div></div>
+    </header>
+
+    <div id="scene">
+      <canvas id="canvas"></canvas>
+      <div id="overlay"></div>
+      <button id="sound" class="iconbtn" aria-label="Toggle sound">♪</button>
+      <section id="stats">
+        <div class="stat"><span class="lbl">AUM</span><span class="val" id="s-aum">$0</span></div>
+        <div class="stat"><span class="lbl">Mastered</span><span class="val" id="s-mastered">0</span></div>
+        <div class="stat"><span class="lbl">Due today</span><span class="val due" id="s-due">0</span></div>
+        <div class="progress"><div class="bar" id="s-bar"></div><span id="s-next">Next office</span></div>
+      </section>
+    </div>
+
+    <nav id="actions">
+      <button id="btn-client" class="big">Next Client</button>
+      <div class="row">
+        <button id="btn-pitch">Pitch</button>
+        <button id="btn-hire">Hire</button>
+        <button id="btn-office">Office</button>
+        <button id="btn-library">Library</button>
+        <button id="btn-menu">Menu</button>
+      </div>
+      <div id="hint"></div>
+    </nav>
+  </div>
+
+  <div id="modal" class="hidden"></div>
+  <div id="reportbox" class="hidden"></div>
+  <div id="pointtip" class="hidden">📍 Tap the thing you mean <span>Cancel</span></div>
+  <div id="toasts"></div>
+
+  <script src="js/content.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/feedback.js"></script>
+  <script src="js/game.js"></script>

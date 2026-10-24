@@ -4,8 +4,8 @@ import sys
 from PIL import Image
 def clean(path, align_bottom=False):
     im = Image.open(path).convert("RGBA"); px = im.load()
-    for cy in range(4):
-        for cx in range(4):
+    for cy in range(im.size[1] // 32):
+        for cx in range(im.size[0] // 32):
             x0, y0 = cx * 32, cy * 32
             filled = lambda y: any(px[x0 + x, y0 + y][3] for x in range(32))
             if filled(0) and not filled(1):
