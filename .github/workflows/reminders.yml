@@ -1,0 +1,30 @@
+name: Study reminders
+
+on:
+  schedule:
+    - cron: "0 5 * * *"    # about 8:00 AM Riyadh
+    - cron: "0 16 * * *"   # about 7:00 PM Riyadh
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "morning or evening"
+        default: "morning"
+
+permissions:
+  issues: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save web-push@3.6.7
+      - run: node tools/send-reminders.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          KIND: ${{ github.event.inputs.kind || (github.event.schedule == '0 16 * * *' && 'evening' || 'morning') }}

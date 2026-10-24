@@ -28,7 +28,7 @@ window.Feedback = (function () {
     if (!underneath) underneath = { html: document.getElementById("modal").innerHTML, ctx: snapshotScreen(), hidden: document.getElementById("modal").classList.contains("hidden") };
     const box = document.getElementById("reportbox");
     box.innerHTML = `<div class="win report">
-      <div class="head"><span>Report to Claude</span><small>${Store.cloud ? "Saved for review" : "Saved on this device"}</small></div>
+      <div class="head"><span>Report to Claude</span><small>${Store.cloud ? "Saved for review" : "Send later from Menu"}</small></div>
       <div class="body">
         <div class="seg">${KINDS.map(k => `<button data-k="${k}" class="${k === kind ? "on" : ""}">${k}</button>`).join("")}</div>
         <textarea id="fb-text" class="input" rows="4" placeholder="What did you notice?">${esc(draft)}</textarea>
@@ -56,7 +56,7 @@ window.Feedback = (function () {
     pointed = null; draft = ""; underneath = null;
     if (sent) {
       const t = document.createElement("div");
-      t.className = "toast gold"; t.textContent = "📝 Note saved. I'll see it at our next review.";
+      t.className = "toast gold"; t.textContent = Store.cloud ? "📝 Note saved. Claude will see it at your next review." : "📝 Note saved. Send your notes from Menu when you're ready.";
       document.getElementById("toasts").appendChild(t);
       setTimeout(() => t.classList.add("out"), 2400); setTimeout(() => t.remove(), 2800);
     }

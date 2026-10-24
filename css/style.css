@@ -260,3 +260,7 @@ button { font-family: var(--ui); cursor: pointer; }
 .pips2 i { flex: 1; height: 6px; border-radius: 3px; background: #d8def0; }
 .pips2 i.done { background: var(--green); }
 .pips2 i.now { background: var(--gold); }
+
+.btnlink { display: block; text-align: center; text-decoration: none; margin: 4px 0 10px; border: 2px solid #0f1a38; border-radius: 10px; padding: 11px 6px; background: linear-gradient(#5d84e6, var(--blue)); color: #fff; font-family: var(--ui); font-weight: 600; font-size: 15px; box-shadow: 0 3px 0 #0f1a38; }
+.steps { margin: 0 0 10px; padding-left: 22px; }
+.steps li { margin-bottom: 6px; }

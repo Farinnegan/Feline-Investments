@@ -44,17 +44,18 @@
     horse: ["Hazel", "Hank", "Hana", "Hugo", "Harper"], bear: ["Bea", "Bruno", "Belle", "Bjorn", "Blair"]
   };
   // Operational stats only (money and AUM), never studying. 1 to 5.
+  // four full-body variants per species (the fifth, head-only variant is not used)
+  const VARIANTS = [0, 1, 2, 3];
   const ARCH = [
     { s: 4, n: 2, d: 3, quip: "Could sell ice in Riyadh in August." },
     { s: 2, n: 5, d: 2, quip: "Knows every pension fund by first name." },
-    { s: 3, n: 3, d: 3, quip: "Steady, reliable, never flustered." },
     { s: 5, n: 1, d: 4, quip: "Closes fast. Networking? Not so much." },
     { s: 1, n: 4, d: 5, quip: "Quiet, but unstoppable once warmed up." }
   ];
   function candidate(tp, v) {
     const t = topic(tp);
     const seed = TOPICS.indexOf(t);
-    const a = ARCH[(v + seed) % 5];
+    const a = ARCH[(v + seed) % ARCH.length];
     const nm = NAMES[t.species][v] + " " + t.species.charAt(0).toUpperCase() + t.species.slice(1);
     return { topic: tp, species: t.species, v, name: nm, s: a.s, n: a.n, d: a.d, quip: a.quip };
   }
@@ -125,11 +126,21 @@
     ["items", "streak", "rr", "newCount"].forEach(k => { if (!S[k] || typeof S[k] !== "object") S[k] = {}; });
     if (!Array.isArray(S.staff)) S.staff = [];
     if (!Array.isArray(S.recent)) S.recent = [];
+    if (!VARIANTS.includes(S.ceoLook)) S.ceoLook = 0;                       // head-only look retired
+    S.staff.forEach(st => { if (!VARIANTS.includes(st.v)) {
+      const free = VARIANTS.find(v => !S.staff.some(o => o !== st && o.topic === st.topic && o.v === v));
+      st.v = free == null ? 0 : free;
+    } });
     S.v = SAVE_VERSION;
     return S;
   }
   let S = migrate(Store.readLocal());
-  function save() { Store.save(S); }
+  function save() { Store.save(S); if (window.Reminders) Reminders.writeSummary(reminderSummary()); }
+  function reminderSummary() {
+    const live = staffedTopics(), dueByDay = {};
+    Object.entries(S.items).forEach(([id, st]) => { if (ITEMS[id] && live.includes(ITEMS[id].topic)) dueByDay[st.due] = (dueByDay[st.due] || 0) + 1; });
+    return { examDay: EXAM_DAY, dueByDay, pitchDay: S.pitch.runs > 0 ? S.pitch.day : null, at: Date.now() };
+  }
 
   // ---------- helpers ----------
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -476,7 +487,7 @@
     const cap = OFFICES[S.office].cap;
     return TOPICS.filter(t => t.live).flatMap(t => {
       const seat = team(t.id).length;
-      return [0, 1, 2, 3, 4].map(v => {
+      return VARIANTS.map(v => {
         const c = candidate(t.id, v);
         const hired = S.staff.some(s => s.topic === t.id && s.v === v);
         const cost = seat === 0 && !S.staff.length ? 0 : hireCost(c, seat);
@@ -774,6 +785,8 @@
         <button id="help" class="wide">How to play</button>
         <button id="rename" class="wide">Rename firm</button>
         <button id="backup" class="wide">Backup or restore progress</button>
+        <button id="remind" class="wide">Phone reminders</button>
+        ${Store.cloud ? "" : `<button id="sendnotes" class="wide">Send notes to Claude (${Store.notes().filter(n => !n.shared).length} new)</button>`}
         <button id="reset" class="wide" style="color:var(--red)">Reset all progress</button>
         <div class="note">${Store.cloud ? "Progress saves on this device and to your Claude account." : "Progress saves on this device. Use a backup code to move it."} Content: CFA Level I Equity.</div>
       </div>
@@ -785,10 +798,46 @@
       root.querySelector("#help").onclick = () => helpWin(false);
       root.querySelector("#rename").onclick = () => introWin(true);
       root.querySelector("#backup").onclick = backupWin;
+      root.querySelector("#remind").onclick = remindersWin;
+      const sn = root.querySelector("#sendnotes"); if (sn) sn.onclick = notesWin;
       root.querySelector("#reset").onclick = () => confirmWin("Reset everything?", "Your firm, staff and all review history will be deleted. This can't be undone.", "Delete everything", () => {
         Store.reset();
         S = freshState(); toldOffice = 0; toldSeats = {}; closeWin(); refreshScene(true); hud(); introWin(false);
       }, menuWin);
+    });
+  }
+
+  // ---------- phone reminders ----------
+  async function remindersWin() {
+    const st = await Reminders.status();
+    let body = "", foot = `<button id="x" class="primary">Close</button>`;
+    if (st.state === "unsupported") body = `<p>This view can't send notifications. Open the game at <b>farinnegan.github.io/Feline-Investments</b> in Safari on your iPhone (iOS 16.4 or newer) or Chrome on Android.</p>`;
+    else if (st.state === "install") body = `<p>On iPhone, reminders only work from the home-screen app.</p><ol class="steps"><li>Tap the <b>Share</b> button in Safari.</li><li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open Feline Investments from your home screen and come back to Menu, Phone reminders.</li></ol><div class="note">Your progress in Safari and in the home-screen app are kept separately. Use a backup code to bring it across.</div>`;
+    else if (st.state === "denied") body = `<p>Notifications are blocked for this app. On iPhone go to <b>Settings, Notifications, Feline Investments</b> and allow them, then come back here.</p>`;
+    else if (st.state === "off") { body = `<p>Get a nudge each morning (about 8 AM) and evening (about 7 PM) with how many reviews are due and whether Pitch Day is ready.</p>`; foot = `<button id="x">Close</button><button id="on" class="primary">Turn on reminders</button>`; }
+    else body = `<p>Reminders are on for this phone.</p><p><b>One-time step:</b> send your reminder code to GitHub so the daily reminder service knows where to send. Tap the button, then tap <b>Submit new issue</b> on GitHub.</p>
+        <a class="btnlink" href="${Reminders.reminderIssueUrl(st.sub)}" target="_blank" rel="noopener">Send reminder code to GitHub</a>
+        <button id="copy" class="wide">Copy code instead</button><button id="test" class="wide">Send a test notification</button>
+        <div class="note">If you copy the code, paste it to Claude and it will be added for you.</div>`;
+    openWin(`<div class="win"><div class="head"><span>Phone reminders</span></div><div class="body">${body}</div><div class="foot">${foot}</div></div>`, root => {
+      root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
+      const on = root.querySelector("#on");
+      if (on) on.onclick = async () => { Sfx.tap(); const sub = await Reminders.enable(); if (sub) { await Reminders.test(); } remindersWin(); };
+      const cp = root.querySelector("#copy");
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(JSON.stringify(st.sub)); toast("Reminder code copied."); } catch (e) { toast("Couldn't copy here."); } };
+      const tb = root.querySelector("#test"); if (tb) tb.onclick = () => { Sfx.tap(); Reminders.test(); };
+    });
+  }
+
+  function notesWin() {
+    const all = Store.notes(), fresh = all.filter(n => !n.shared);
+    openWin(`<div class="win"><div class="head"><span>Notes for Claude</span><small>${all.length} total</small></div>
+      <div class="body">${fresh.length ? `<p>${fresh.length} new note${fresh.length > 1 ? "s" : ""}. Tap the button, then <b>Submit new issue</b> on GitHub, and Claude will read them at your next review.</p>
+        <a id="sendlink" class="btnlink" href="${Reminders.notesIssueUrl(fresh)}" target="_blank" rel="noopener">Send ${fresh.length} note${fresh.length > 1 ? "s" : ""} to GitHub</a>` : `<p>No new notes. Tap 📝 at the top any time to add one.</p>`}
+        <div class="list">${all.slice().reverse().slice(0, 12).map(n => `<div class="li"><b>${esc(n.kind)}</b> · ${esc(n.text)}${n.shared ? " <span class='tag'>sent</span>" : ""}</div>`).join("")}</div></div>
+      <div class="foot"><button id="x" class="primary">Close</button></div></div>`, root => {
+      root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
+      const a = root.querySelector("#sendlink"); if (a) a.addEventListener("click", () => { Store.markShared(fresh.map(n => n.id)); setTimeout(notesWin, 500); });
     });
   }
 
@@ -833,7 +882,8 @@
         <p><b>Grow the team.</b> New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
         <p><b>Pitch Day.</b> Once a day, pitch 5 exam-style questions to a big client. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear. Clear all your reviews to unlock a bonus pitch.</p>
         <p><b>Move up.</b> Mastered concepts, tombstones and cash unlock bigger offices.</p>
-        <p><b>Spot something off?</b> Tap 📝 to leave me a note.</p>
+        <p><b>Spot something off?</b> Tap 📝 to leave Claude a note.</p>
+        <p><b>Reminders.</b> Add the game to your home screen, then turn on Menu, Phone reminders.</p>
       </div>
       <div class="foot"><button id="x" class="primary">${first ? "Open for business" : "Got it"}</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); if (first) morning(true); };
@@ -845,7 +895,7 @@
     let look = S.ceoLook || 0;
     openWin(`<div class="win"><div class="head"><span>${rename ? "Rename firm" : "Welcome, Boss"}</span></div>
       <div class="body">
-        ${rename ? "" : "<p>You're the cat. You just opened a tiny investment firm in your home office. Grow it into a skyscraper by closing client deals, all built from your CFA notes.</p><div class='label'>Choose your look</div><div class='looks'>" + [0, 1, 2, 3, 4].map(v => `<button class="look ${v === look ? "on" : ""}" data-v="${v}"><img src="${Sprites.cowUrl("black-cat", v, 2)}" alt=""></button>`).join("") + "</div>"}
+        ${rename ? "" : "<p>You're the cat. You just opened a tiny investment firm in your home office. Grow it into a skyscraper by closing client deals, all built from your CFA notes.</p><div class='label'>Choose your look</div><div class='looks'>" + VARIANTS.map(v => `<button class="look ${v === look ? "on" : ""}" data-v="${v}"><img src="${Sprites.cowUrl("black-cat", v, 2)}" alt=""></button>`).join("") + "</div>"}
         <div class="label">Name your firm</div>
         <input id="fn" class="input" maxlength="22" placeholder="Feline Investments" value="${esc(S.firm)}">
       </div>
@@ -893,7 +943,7 @@
   }
 
   // ---------- wire up ----------
-  Promise.all([Sprites.load(), Store.init()]).then(async () => {
+  Promise.all([Sprites.load(), Store.init(), Reminders.init()]).then(async () => {
     // on claude.ai, use whichever save is newer: this device's or the cloud's
     const cloud = await Store.loadCloud();
     if (cloud && (!S.updatedAt || (cloud.updatedAt || 0) > S.updatedAt)) S = migrate(cloud);

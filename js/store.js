@@ -79,8 +79,10 @@ window.Store = (function () {
   function exportCode(S) { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }
   function importCode(code) { return JSON.parse(decodeURIComponent(escape(atob(code.trim())))); }
 
+  function markShared(ids) { const notes = readNotes(); notes.forEach(n => { if (ids.includes(n.id)) n.shared = true; }); writeNotes(notes); }
+
   return {
-    init, loadCloud, save, readLocal, addNote, notes: readNotes, exportCode, importCode,
+    init, loadCloud, save, readLocal, addNote, markShared, notes: readNotes, exportCode, importCode,
     get cloud() { return cloudReady; },
     reset() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} if (cloudReady) db.doc("saves/" + uid).delete().catch(() => {}); }
   };
