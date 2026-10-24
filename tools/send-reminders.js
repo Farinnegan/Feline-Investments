@@ -3,7 +3,7 @@
 // the actual message from the game's own data (reviews due, Pitch Day).
 const webpush = require("web-push");
 
-const VAPID_PUBLIC = "BLeJmT93eQjkGnZ3TVeD0zS_-AJMRrzuE4H7l5sUFN1Onf1u4j154xgB62ifqmhhfDlQXTBWvA43Y_YlcMU7hdQ";
+const VAPID_PUBLIC = "BPhEzBcitdODAKYAR6_UNIQ7bbpItW6KXtkVwBetT6HzWRfYNDjjZniD2M9hzUNUiWvNCDHpxVnfRPd-K9eZED4";
 const { GITHUB_TOKEN, REPO, VAPID_PRIVATE_KEY, KIND } = process.env;
 
 async function main() {

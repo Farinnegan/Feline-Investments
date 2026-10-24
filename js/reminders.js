@@ -4,7 +4,7 @@
 // - turns on push reminders and hands the reminder code to GitHub, where a daily
 //   GitHub Action sends the notifications
 window.Reminders = (function () {
-  const VAPID_PUBLIC = "BLeJmT93eQjkGnZ3TVeD0zS_-AJMRrzuE4H7l5sUFN1Onf1u4j154xgB62ifqmhhfDlQXTBWvA43Y_YlcMU7hdQ";
+  const VAPID_PUBLIC = "BPhEzBcitdODAKYAR6_UNIQ7bbpItW6KXtkVwBetT6HzWRfYNDjjZniD2M9hzUNUiWvNCDHpxVnfRPd-K9eZED4";
   const REPO = "https://github.com/Farinnegan/Feline-Investments";
   let reg = null;
 
