@@ -7,6 +7,8 @@ window.Sfx = (function () {
     if (!ctx) {
       const C = window.AudioContext || window.webkitAudioContext;
       if (!C) return null;
+      // iPhone: treat game sounds like media so they play even with the ringer switch on silent
+      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
       ctx = new C();
     }
     if (ctx.state === "suspended") ctx.resume();
@@ -41,6 +43,14 @@ window.Sfx = (function () {
     src.connect(f).connect(g).connect(a.destination);
     src.start(t);
   }
+
+  // unlock audio on the very first touch (iOS only allows it inside a gesture)
+  const firstTouch = () => {
+    const a = ac(); if (!a) return;
+    const b = a.createBuffer(1, 1, 22050), src = a.createBufferSource();
+    src.buffer = b; src.connect(a.destination); src.start(0);
+  };
+  ["touchend", "pointerdown", "click"].forEach(ev => document.addEventListener(ev, firstTouch, { once: true, capture: true }));
 
   return {
     unlock() { ac(); },

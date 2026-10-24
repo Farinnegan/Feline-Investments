@@ -65,9 +65,10 @@ window.Scene = (function () {
   function camera() {
     if (!canvas) return;
     const W = layout.w * T + M * 2, H = layout.h * T + M * 2;
-    const inset = Math.round((insetFn ? insetFn() : 0) * DPR); // keep the office clear of the stats card
+    // fill the screen: zoom to fit (not just whole steps); the stats card may float over the bottom lounge
+    const inset = Math.round((insetFn ? insetFn() : 0) * DPR * 0.35);
     const usableH = canvas.height - inset;
-    P = Math.max(1, Math.floor(Math.min(canvas.width / W, usableH / H)));
+    P = Math.max(1, Math.min(canvas.width / W, usableH / H));
     OXd = Math.round((canvas.width - W * P) / 2);
     OYd = Math.max(0, Math.round((usableH - H * P) / 2));
   }
