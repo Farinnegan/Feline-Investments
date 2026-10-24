@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#1f2f5c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Feline Investments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div id="date">Y1 M1 W1</div>
+      <div id="firmname">Feline Investments</div>
+      <div id="cash">$0</div>
+    </header>
+
+    <div id="scene">
+      <canvas id="canvas"></canvas>
+      <div id="overlay"></div>
+      <button id="sound" class="iconbtn" aria-label="Toggle sound">♪</button>
+    </div>
+
+    <section id="stats">
+      <div class="stat"><span class="lbl">AUM</span><span class="val" id="s-aum">$0</span></div>
+      <div class="stat"><span class="lbl">Deals</span><span class="val" id="s-deals">0</span></div>
+      <div class="stat"><span class="lbl">Mastered</span><span class="val" id="s-mastered">0</span></div>
+      <div class="stat"><span class="lbl">Due</span><span class="val due" id="s-due">0</span></div>
+      <div class="progress"><div class="bar" id="s-bar"></div><span id="s-next">Next office</span></div>
+    </section>
+
+    <nav id="actions">
+      <button id="btn-client" class="big">Next Client</button>
+      <div class="row">
+        <button id="btn-hire">Hire</button>
+        <button id="btn-office">Office</button>
+        <button id="btn-library">Library</button>
+        <button id="btn-menu">Menu</button>
+      </div>
+      <div id="hint"></div>
+    </nav>
+  </div>
+
+  <div id="modal" class="hidden"></div>
+  <div id="toasts"></div>
+
+  <script src="js/content.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
