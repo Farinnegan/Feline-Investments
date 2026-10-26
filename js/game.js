@@ -1,6 +1,7 @@
 // Feline Investments — game logic, spaced repetition, economy and windows.
 (function () {
-  const C = window.CONTENT;
+  // every topic file registers itself; Equity came first as window.CONTENT
+  const TC = Object.assign({ equity: window.CONTENT }, window.TOPIC_CONTENT || {});
 
   // ---------- calendar ----------
   const dayNum = d => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
@@ -35,15 +36,17 @@
     { id: "ethics", name: "Ethics",                       species: "owl",    max: 3 },
     { id: "quant",  name: "Quantitative Methods",         species: "rabbit", max: 2 },
     { id: "econ",   name: "Economics",                    species: "dove",   max: 2 },
-    { id: "fsa",    name: "Financial Statement Analysis", species: "wolf",   max: 3 },
+    { id: "fsa",    name: "Financial Statement Analysis", species: "wolf",   max: 3, short: "FSA" },
     { id: "corp",   name: "Corporate Issuers",            species: "lion",   max: 2 },
-    { id: "equity", name: "Equity",                       species: "bull",   max: 3, live: true },
+    { id: "equity", name: "Equity",                       species: "bull",   max: 3, short: "Equity" },
     { id: "fi",     name: "Fixed Income",                 species: "turtle", max: 3 },
     { id: "deriv",  name: "Derivatives",                  species: "fox",    max: 2 },
     { id: "alts",   name: "Alternative Investments",      species: "horse",  max: 2 },
     { id: "pm",     name: "Portfolio Management",         species: "bear",   max: 2 }
   ];
+  TOPICS.forEach(t => { t.live = !!TC[t.id]; t.short = t.short || t.name; });
   const topic = id => TOPICS.find(t => t.id === id);
+  const LIVE = TOPICS.filter(t => t.live).map(t => t.id);
   const NAMES = {
     bull: ["Bella", "Barry", "Bianca", "Boris", "Bailey"], owl: ["Olivia", "Oscar", "Opal", "Otto", "Oakley"],
     rabbit: ["Ruby", "Ralph", "Rosa", "Rex", "Riley"], dove: ["Daisy", "Dex", "Dina", "Dario", "Dakota"],
@@ -88,31 +91,39 @@
     { tombs: 10, sprite: "analyst-briefcase", name: "Analyst briefcase", effect: "+10% AUM on every deal" },
     { tombs: 15, sprite: "multi-monitor-terminal", name: "Trading terminals", effect: "+15% fees on every call" },
     { tombs: 25, sprite: "open-vault", name: "The vault", effect: "Earns 2% interest on your cash each morning (up to $5K)" },
-    { tombs: 46, sprite: "crystal-championship-trophy", name: "Crystal trophy", effect: "Every Equity question proven. Legend status." }
+    { tombs: 0, sprite: "crystal-championship-trophy", name: "Crystal trophy", effect: "Every question proven. Legend status." }
   ];
   const PITCH_LEN = 5;
   const CHEERS = ["Deal closed!", "Well done.", "Nailed it!", "Client signed!", "Smooth.", "Easy money."];
   const OOPS = ["Lost that one...", "Hmm, not quite.", "Client walked."];
 
   // ---------- items: terms and formulas only (the question bank is its own side game) ----------
-  const ITEMS = {};
-  C.terms.forEach(t => ITEMS[t.id] = { id: t.id, m: t.m, topic: "equity", kind: "term", src: t });
-  C.formulas.forEach(f => ITEMS[f.id] = { id: f.id, m: f.m, topic: "equity", kind: "formula", src: f });
-  const TOPIC_ITEMS = {};
+  // Module keys are "topic:number" so module 2 of Equity and module 2 of FSA never mix.
+  const ITEMS = {}, MODS = {}, QUESTIONS = [], TOPIC_ITEMS = {}, NEW_ORDER = {};
+  const mkey = (tp, m) => tp + ":" + m;
+  LIVE.forEach(tp => {
+    const C = TC[tp];
+    C.modules.forEach(m => MODS[mkey(tp, m.id)] = Object.assign({}, m, { tp, key: mkey(tp, m.id) }));
+    C.terms.forEach(t => ITEMS[t.id] = { id: t.id, m: t.m, mk: mkey(tp, t.m), topic: tp, kind: "term", src: t });
+    C.formulas.forEach(f => ITEMS[f.id] = { id: f.id, m: f.m, mk: mkey(tp, f.m), topic: tp, kind: "formula", src: f });
+    C.questions.forEach(q => QUESTIONS.push(Object.assign({ tp, mk: mkey(tp, q.m) }, q)));
+    // new concepts per topic, module by module: term, term, formula ... (easy first)
+    NEW_ORDER[tp] = [];
+    C.modules.slice().sort((a, b) => a.id - b.id).forEach(mod => {
+      const terms = C.terms.filter(t => t.m === mod.id).map(t => t.id);
+      const forms = C.formulas.filter(f => f.m === mod.id).map(f => f.id);
+      let i = 0;
+      while (terms.length || forms.length) {
+        const src = (i++ % 3 === 2 && forms.length) || !terms.length ? forms : terms;
+        NEW_ORDER[tp].push(src.shift());
+      }
+    });
+  });
   Object.values(ITEMS).forEach(i => (TOPIC_ITEMS[i.topic] = TOPIC_ITEMS[i.topic] || []).push(i.id));
   const TOTAL_ITEMS = Object.keys(ITEMS).length;
-
-  // new concepts per topic, module by module: term, term, formula ... (easy first)
-  const NEW_ORDER = { equity: [] };
-  C.modules.slice().sort((a, b) => a.id - b.id).forEach(mod => {
-    const terms = C.terms.filter(t => t.m === mod.id).map(t => t.id);
-    const forms = C.formulas.filter(f => f.m === mod.id).map(f => f.id);
-    let i = 0;
-    while (terms.length || forms.length) {
-      const src = (i++ % 3 === 2 && forms.length) || !terms.length ? forms : terms;
-      NEW_ORDER.equity.push(src.shift());
-    }
-  });
+  GEAR[GEAR.length - 1].tombs = QUESTIONS.length;
+  const qById = id => QUESTIONS.find(q => q.id === id);
+  const topicMods = tp => Object.values(MODS).filter(M => M.tp === tp).sort((a, b) => a.id - b.id);
 
   // ---------- state ----------
   function freshState() {
@@ -170,7 +181,7 @@
     if (a >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
     return "$" + Math.round(n);
   }
-  const mod = id => C.modules.find(m => m.id === id);
+  const mod = key => MODS[key] || MODS[mkey("equity", key)];
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const $ = id => document.getElementById(id);
   const team = tp => S.staff.filter(s => s.topic === tp);
@@ -225,7 +236,7 @@
     return r;
   }
   const topicStats = tp => statsOf(TOPIC_ITEMS[tp] || []);
-  const moduleStats = m => statsOf(Object.values(ITEMS).filter(i => i.m === m).map(i => i.id));
+  const moduleStats = key => statsOf(Object.values(ITEMS).filter(i => i.mk === key).map(i => i.id));
   function totals() {
     const live = staffedTopics();
     const all = statsOf(Object.keys(ITEMS));
@@ -301,8 +312,7 @@
     return { s: t.reduce((a, x) => a + x.s, 0), n: t.reduce((a, x) => a + x.n, 0), d: t.reduce((a, x) => a + x.d, 0) };
   }
   function skillsUnlocked(tp) {
-    if (tp !== "equity") return 0;
-    return C.modules.filter(m => { const st = moduleStats(m.id); return st.total && st.mastered / st.total >= 0.8; }).length;
+    return topicMods(tp).filter(M => { const st = moduleStats(M.key); return st.total && st.mastered / st.total >= 0.8; }).length;
   }
   function moodFor(tp) {
     if (topicStats(tp).overdue > 0) return "sleepy";
@@ -328,7 +338,8 @@
   }
 
   // wrong options: same look-alike group first (including file-named decoys), then same module, then anything
-  function termOptions(t, count) {
+  function termOptions(tp, t, count) {
+    const C = TC[tp];
     const decoys = (C.decoyTerms || []).filter(d => d.g === t.g && d.m === t.m).map(d => ({ term: d.term, g: d.g, m: d.m, decoy: true }));
     const real = pickDistractors(C.terms, t, count, x => x.term);
     const sameReal = real.filter(x => x.g === t.g);
@@ -337,7 +348,8 @@
     real.forEach(x => { if (out.length < count && !out.includes(x)) out.push(x); });
     return out;
   }
-  function formulaOptions(f, count) {
+  function formulaOptions(tp, f, count) {
+    const C = TC[tp];
     const traps = (C.decoyFormulas || []).filter(d => d.for === f.id).map(d => ({ formula: d.formula, decoy: true }));
     const real = pickDistractors(C.formulas, f, count, x => x.formula).filter(x => x.formula !== f.formula);
     const out = shuffle(traps).slice(0, Math.min(2, count));
@@ -350,11 +362,12 @@
     const s = S.items[pick.id];
     const box = s ? s.b : 0;
     const forced = s && s.flipTo;
-    const base = { id: it.id, m: it.m, topic: it.topic, mode: pick.mode, retest: !!forced };
+    const C = TC[it.topic];
+    const base = { id: it.id, m: it.m, mk: it.mk, topic: it.topic, mode: pick.mode, retest: !!forced };
     if (it.kind === "term") {
       const t = it.src;
       const reverse = forced ? forced === "reverse" : box >= 2 && Math.random() < 0.5;
-      const ds = reverse ? pickDistractors(C.terms, t, 2, x => x.def) : termOptions(t, 3);
+      const ds = reverse ? pickDistractors(C.terms, t, 2, x => x.def) : termOptions(it.topic, t, 3);
       const why = "<b>" + esc(t.term) + "</b>: " + esc(t.def);
       if (reverse) return { ...base, reverse, type: "rterm", label: "Define it", ask: "Which definition fits this term?", prompt: "<b>" + esc(t.term) + "</b>", why,
         opts: shuffle([{ text: t.def, right: true }, ...ds.map(x => ({ text: x.def, right: false }))]) };
@@ -363,7 +376,7 @@
     }
     const f = it.src;
     const reverse = forced ? forced === "reverse" : box >= 2 && Math.random() < 0.4;
-    const ds = reverse ? pickDistractors(C.formulas, f, 3, x => x.name) : formulaOptions(f, 3);
+    const ds = reverse ? pickDistractors(C.formulas, f, 3, x => x.name) : formulaOptions(it.topic, f, 3);
     const why = "<b>" + esc(f.name) + "</b> = " + esc(f.formula);
     if (reverse) return { ...base, reverse, type: "rformula", label: "Read the formula", ask: "What does this formula calculate?", prompt: "<span class='formula'>" + esc(f.formula) + "</span>", why,
       opts: shuffle([{ text: f.name, right: true }, ...ds.map(x => ({ text: x.name, right: false }))]) };
@@ -454,16 +467,16 @@
   }
 
   function showDeal(deal, si) {
-    const st = S.staff[si], m = mod(deal.m);
+    const st = S.staff[si], m = mod(deal.mk);
     const tag = deal.retest ? "<span class='tag due'>Retest</span>" : deal.mode === "new" ? "<span class='tag new'>New concept</span>" : deal.mode === "due" ? "<span class='tag due'>Review due</span>" : "<span class='tag prac'>Extra call</span>";
     const keys = ["A", "B", "C", "D"];
     modal.dataset.lock = "1";
-    CTX.question = { kind: "client call", itemId: deal.id, module: deal.m, mode: deal.mode, format: deal.type, prompt: strip(deal.prompt), options: deal.opts.map(o => o.text), answer: deal.opts.find(o => o.right).text };
+    CTX.question = { kind: "client call", itemId: deal.id, topic: deal.topic, module: deal.m, mode: deal.mode, format: deal.type, prompt: strip(deal.prompt), options: deal.opts.map(o => o.text), answer: deal.opts.find(o => o.right).text };
     openWin(`
       <div class="win">
         <div class="head"><span>${esc(deal.label)}</span><small>${esc(st.name)}</small></div>
         <div class="body">
-          <div class="clientrow"><img src="${Sprites.url(deal.client.sprite, 2)}" alt=""><div><b>${esc(deal.client.name)}</b><span>${esc(deal.client.who)}</span></div><button id="d-idk" class="idk">📖 I don't know</button><div class="tags">${tag}<span class="tag">M${m.id} ${esc(m.short)}</span></div></div>
+          <div class="clientrow"><img src="${Sprites.url(deal.client.sprite, 2)}" alt=""><div><b>${esc(deal.client.name)}</b><span>${esc(deal.client.who)}</span></div><button id="d-idk" class="idk">📖 I don't know</button><div class="tags">${tag}<span class="tag">${LIVE.length > 1 ? esc(topic(deal.topic).short) + " " : ""}M${m.id} ${esc(m.short)}</span></div></div>
           <div class="prompt">${deal.prompt}</div>
           <div class="ask">${esc(deal.ask)}</div>
           <div class="opts">${deal.opts.map((o, i) => `<button class="opt" data-i="${i}"><span class="k">${keys[i]}</span><span>${esc(o.text)}</span></button>`).join("")}</div>
@@ -478,7 +491,7 @@
       root.querySelectorAll(".opt").forEach(btn => btn.addEventListener("click", () => answer(deal, si, +btn.dataset.i, root)));
       root.querySelector("#d-idk").onclick = () => {
         Sfx.printer();
-        addStudy(deal.id, { kind: "call", m: deal.m, format: deal.type, label: deal.label, prompt: strip(deal.prompt) });
+        addStudy(deal.id, { kind: "call", tp: deal.topic, m: deal.m, format: deal.type, label: deal.label, prompt: strip(deal.prompt) });
         S.recent.push(deal.id); if (S.recent.length > 4) S.recent.shift();
         root.querySelectorAll(".opt, #d-idk").forEach(b => b.disabled = true);
         root.querySelector(".opts").style.display = "none"; root.querySelector(".ask").style.display = "none";
@@ -605,7 +618,7 @@
       return VARIANTS.map(v => {
         const c = candidate(t.id, v);
         const hired = S.staff.some(s => s.topic === t.id && s.v === v);
-        const cost = seat === 0 && !S.staff.length ? 0 : hireCost(c, seat);
+        const cost = seat === 0 ? 0 : hireCost(c, seat);                      // the first analyst on each desk is on the house
         const can = !hired && seat < openSeats(t.id) && S.staff.length < cap && S.cash >= cost;
         return { c, hired, cost, can, seat };
       });
@@ -631,7 +644,7 @@
         </div>`).join("");
       return `<div class="sect">${esc(t.name)} desk <small>${seat}/${t.max}</small></div><div class="note" style="margin:0 0 8px">${seatNote}</div>${cards}`;
     }).join("");
-    const intro = first ? `<div class="note" style="margin:0 0 10px;color:var(--ink)">Pick your first Equity analyst. This hire is on the house. Stats only change how much money they bring in, never what you study.</div>`
+    const intro = first ? `<div class="note" style="margin:0 0 10px;color:var(--ink)">Pick your first analyst. This hire is on the house. Stats only change how much money they bring in, never what you study.</div>`
       : `<div class="note" style="margin:0 0 10px">Sales raises fees, Network raises AUM, Drive makes hot streaks pay more. Office desks: ${S.staff.length}/${cap}.</div>`;
     if (first) modal.dataset.lock = "1";
     openWin(`<div class="win"><div class="head"><span>${first ? "Your first hire" : "Hiring market"}</span><small>${S.staff.length}/${cap} desks</small></div>
@@ -664,10 +677,13 @@
   function pitchesLeft() { rollPitchDay(); return Math.max(0, 1 + (vaultOpen() ? 1 : 0) - S.pitch.runs); }
   const qState = id => S.pitch.q[id] || (S.pitch.q[id] = { okDays: [], seen: 0, wrongDay: null, lastDay: null });
 
+  // Pitch Day draws from every desk you have staffed
+  const pitchPool = () => { const st = staffedTopics(); return QUESTIONS.filter(q => st.includes(q.tp)); };
   function pickPitch() {
     const d = today();
-    const allDone = C.questions.every(q => S.pitch.tombs.includes(q.id));
-    const open = C.questions.filter(q => { const st = S.pitch.q[q.id]; return !S.study[q.id] && !(st && st.lastDay === d) && (allDone || !S.pitch.tombs.includes(q.id)); });
+    const pool = pitchPool();
+    const allDone = pool.every(q => S.pitch.tombs.includes(q.id));
+    const open = pool.filter(q => { const st = S.pitch.q[q.id]; return !S.study[q.id] && !(st && st.lastDay === d) && (allDone || !S.pitch.tombs.includes(q.id)); });
     const st = q => S.pitch.q[q.id] || { okDays: [], seen: 0, wrongDay: null };
     const groups = [
       open.filter(q => st(q).okDays.length === 1),                          // one more right day makes a tombstone
@@ -686,10 +702,10 @@
     const inst = INSTITUTIONS[(today() + S.pitch.runs) % INSTITUTIONS.length];
     const qs = left ? pickPitch() : [];
     const why = left ? "" : vaultOpen() || S.pitch.runs >= 2 ? "You've pitched for today. Come back tomorrow." : "Today's pitch is done. Clear all your reviews to open the vault and unlock a bonus pitch.";
-    openWin(`<div class="win"><div class="head"><span>Pitch Day</span><small>${tombCount()}/${C.questions.length} tombstones</small></div>
+    openWin(`<div class="win"><div class="head"><span>Pitch Day</span><small>${tombCount()}/${QUESTIONS.length} tombstones</small></div>
       <div class="body">
-        <div class="pitchhero"><img src="${Sprites.url(inst.sprite, 3)}" alt=""><div><b>${esc(inst.name)}</b><span>wants to hear your Equity pitch.</span></div></div>
-        ${left && qs.length ? `<p>${qs.length} exam-style questions from all of Equity. Every right answer wins a mandate worth about <b>${money(pitchAum())}</b> in AUM. Get a question right on two different days and it becomes a deal tombstone for your wall.</p>` : `<p>${esc(why || "Every question has been pitched today. Come back tomorrow.")}</p>`}
+        <div class="pitchhero"><img src="${Sprites.url(inst.sprite, 3)}" alt=""><div><b>${esc(inst.name)}</b><span>wants to hear your pitch.</span></div></div>
+        ${left && qs.length ? `<p>${qs.length} exam-style questions from ${esc(pitchTopicsText())}. Every right answer wins a mandate worth about <b>${money(pitchAum())}</b> in AUM. Get a question right on two different days and it becomes a deal tombstone for your wall.</p>` : `<p>${esc(why || "Every question has been pitched today. Come back tomorrow.")}</p>`}
         <div class="sect">Gear</div>
         <div class="gear">${GEAR.map(g => `<div class="g ${tombCount() >= g.tombs ? "on" : ""}"><img src="${Sprites.url(g.sprite, 2)}" alt=""><div><b>${esc(g.name)}</b><span>${tombCount() >= g.tombs ? esc(g.effect) : g.tombs + " tombstones · " + esc(g.effect)}</span></div></div>`).join("")}</div>
         ${nextGear ? `<div class="note">Next: ${esc(nextGear.name)} at ${nextGear.tombs} tombstones.</div>` : ""}
@@ -705,20 +721,37 @@
       };
     });
   }
+  const pitchTopicsText = () => { const n = staffedTopics().map(tp => topic(tp).name); return n.length > 1 ? n.slice(0, -1).join(", ") + " and " + n[n.length - 1] : "all of " + (n[0] || "your topics"); };
+  // question text: paragraphs, "- " lines as a list, and the data table where the file had one
+  function renderQ(q) {
+    // a side-by-side balance sheet (label, value, label, value) is stacked into two tables to fit a phone
+    let tables = q.table && q.table.length ? [q.table] : [];
+    const h = tables.length && q.table[0];
+    if (h && h.length === 4 && !h[1] && !h[3]) tables = [q.table.map(r => r.slice(0, 2)), q.table.map(r => r.slice(2, 4))].map(t => t.filter((r, i) => i === 0 || r.some(c => c)));
+    const table = tables.map(t => `<div class="qtwrap"><table class="qt${t[0].length > 2 ? " wide" : ""}">${t.map((r, i) => `<tr>${r.map(c => i === 0 ? `<th>${esc(c)}</th>` : `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table></div>`).join("");
+    const paras = String(q.q).split(/\n\s*\n/);
+    const html = paras.map(p => {
+      const lines = p.split("\n");
+      const lead = lines.filter(l => !/^\s*[-•]\s/.test(l)), items = lines.filter(l => /^\s*[-•]\s/.test(l));
+      return (lead.length ? `<p>${lead.map(esc).join("<br>")}</p>` : "") + (items.length ? `<ul>${items.map(l => `<li>${esc(l.replace(/^\s*[-•]\s/, ""))}</li>`).join("")}</ul>` : "");
+    });
+    if (table) html.splice(Math.min(1, html.length), 0, table);
+    return html.join("");
+  }
   const pitchAum = () => Math.round(250000 * (1 + 0.25 * S.office) * (hasGear("analyst-briefcase") ? 1.1 : 1));
 
   function runPitch(run) {
-    const q = C.questions.find(x => x.id === run.qs[run.i]);
+    const q = qById(run.qs[run.i]);
     const opts = shuffle(q.o.map((text, k) => ({ text, right: k === q.a })));
     const keys = ["A", "B", "C", "D"];
-    CTX.question = { kind: "pitch day", itemId: q.id, module: q.m, prompt: q.q, options: opts.map(o => o.text), answer: q.o[q.a] };
+    CTX.question = { kind: "pitch day", itemId: q.id, topic: q.tp, module: q.m, prompt: q.q, options: opts.map(o => o.text), answer: q.o[q.a] };
     modal.dataset.lock = "1";
     const pips = run.qs.map((_, k) => `<i class="${k < run.i ? "done" : k === run.i ? "now" : ""}"></i>`).join("");
     const st = S.pitch.q[q.id];
     const tag = st && st.okDays.length === 1 ? "<span class='tag new'>Tombstone chance</span>" : st && st.seen ? "<span class='tag'>Seen before</span>" : "<span class='tag'>New question</span>";
     openWin(`<div class="win"><div class="head"><span>${esc(run.inst.name)}</span><small>Question ${run.i + 1} of ${run.qs.length}</small></div>
-      <div class="body"><div class="pips2">${pips}</div><div class="pitchtop"><div>${tag}<span class="tag">M${q.m}</span></div><button id="p-idk" class="idk">📖 I don't know</button></div>
-        <div class="prompt">${esc(q.q)}</div>
+      <div class="body"><div class="pips2">${pips}</div><div class="pitchtop"><div>${tag}<span class="tag">${esc(topic(q.tp).short)} M${q.m}</span></div><button id="p-idk" class="idk">📖 I don't know</button></div>
+        <div class="prompt qtext">${renderQ(q)}</div>
         <div class="opts">${opts.map((o, k) => `<button class="opt" data-i="${k}"><span class="k">${keys[k]}</span><span>${esc(o.text)}</span></button>`).join("")}</div>
         <div id="res"></div></div>
       <div class="foot" id="prefoot"><button id="leave">End pitch</button></div>
@@ -726,7 +759,7 @@
       root.querySelector("#leave").onclick = () => { Sfx.tap(); pitchSummary(run); };
       root.querySelector("#p-idk").onclick = () => {
         Sfx.printer();
-        addStudy(q.id, { kind: "pitch", m: q.m, label: "Pitch Day question", prompt: q.q });
+        addStudy(q.id, { kind: "pitch", tp: q.tp, m: q.m, label: "Pitch Day question", prompt: q.q });
         run.studied = (run.studied || 0) + 1;
         root.querySelectorAll(".opt, #p-idk").forEach(b => b.disabled = true);
         root.querySelector(".opts").style.display = "none";
@@ -754,7 +787,7 @@
             const before = tombCount();
             S.pitch.tombs.push(q.id); run.tombsNew.push(q.id); pxp += XP.tombstone;
             tombMsg = "🏛 Deal tombstone earned!";
-            setTimeout(() => { Sfx.sting(); toast("🏛 Deal tombstone earned! " + tombCount() + "/" + C.questions.length, "gold"); }, 400);
+            setTimeout(() => { Sfx.sting(); toast("🏛 Deal tombstone earned! " + tombCount() + "/" + QUESTIONS.length, "gold"); }, 400);
             const g = GEAR.find(g => before < g.tombs && tombCount() >= g.tombs);
             if (g) setTimeout(() => { Sfx.fanfare(); toast("🎁 New gear: " + esc(g.name) + ". " + esc(g.effect), "gold"); }, 1400);
           }
@@ -781,7 +814,7 @@
     const answered = Math.min(run.i + (document.querySelector("#res .result") ? 1 : 0), run.qs.length) - (run.studied || 0);
     openWin(`<div class="win"><div class="head"><span>Pitch results</span><small>${esc(run.inst.name)}</small></div>
       <div class="body"><div class="pitchhero"><img src="${Sprites.url(run.inst.sprite, 3)}" alt=""><div><b>${run.correct} of ${answered} mandates won</b><span>${run.correct ? "They're impressed." : "They'll be back."}</span></div></div>
-        <div class="kv"><span>XP earned</span><span>+${run.xp || 0}</span><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span>${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}<span>Total tombstones</span><span>${tombCount()}/${C.questions.length}</span></div>
+        <div class="kv"><span>XP earned</span><span>+${run.xp || 0}</span><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span>${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}<span>Total tombstones</span><span>${tombCount()}/${QUESTIONS.length}</span></div>
         ${pitchesLeft() ? `<div class="note">You have ${pitchesLeft()} more pitch${pitchesLeft() > 1 ? "es" : ""} today.</div>` : vaultOpen() ? `<div class="note">That's it for today. Next pitch tomorrow.</div>` : `<div class="note">Clear all of today's reviews to open the vault and unlock a bonus pitch.</div>`}
       </div>
       <div class="foot"><button id="x" class="primary">Back to the office</button></div></div>`, root => {
@@ -831,8 +864,8 @@
     const icon = { study: "study-book-stack", shaky: "weak-mastery-card", learned: "learned-mastery-card", mastered: "mastered-card" }[st];
     return `<img class="mi" src="${Sprites.url(icon, 1)}" alt="${st}" title="${st}">`;
   }
-  function badge(m) {
-    const st = moduleStats(m); const r = st.total ? st.mastered / st.total : 0;
+  function badge(key) {
+    const st = moduleStats(key); const r = st.total ? st.mastered / st.total : 0;
     const name = r >= 1 ? "platinum-peak-badge" : r >= 0.75 ? "gold-peak-badge" : r >= 0.5 ? "silver-peak-badge" : r >= 0.25 ? "bronze-peak-badge" : "locked-vault";
     return `<img class="bi" src="${Sprites.url(name, 1)}" alt="">`;
   }
@@ -844,12 +877,12 @@
   function legend(st) {
     return `<div class="legend">${STATES.slice().reverse().map(x => `<span><i class="s-${x.k}"></i>${x.label} <b>${st[x.k]}</b></span>`).join("")}</div>`;
   }
-  function moduleRows() {
-    return C.modules.slice().sort((a, b) => a.id - b.id).map(m => {
-      const st = moduleStats(m.id);
+  function moduleRows(tp) {
+    return topicMods(tp).map(M => {
+      const st = moduleStats(M.key);
       const lit = st.total && st.mastered / st.total >= 0.8;
-      return `<button class="modbtn" data-m="${m.id}">
-        <span class="ml">${badge(m.id)}<span>M${m.id} ${esc(m.short)}${lit ? " <span class='tag new'>Skill +5%</span>" : ""}${isFocus(m.id) ? " <span class='tag due'>Focus</span>" : ""}</span></span>
+      return `<button class="modbtn" data-k="${M.key}">
+        <span class="ml">${badge(M.key)}<span>M${M.id} ${esc(M.short)}${lit ? " <span class='tag new'>Skill +5%</span>" : ""}${isFocus(tp, M.id) ? " <span class='tag due'>Focus</span>" : ""}</span></span>
         <span class="mr">Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</span>
         ${stackBar(st)}</button>`;
     }).join("");
@@ -858,51 +891,59 @@
     const ids = Object.keys(S.study).sort((a, b) => (S.study[b].at || 0) - (S.study[a].at || 0));
     if (!ids.length) return `<div class="note">Nothing here. When a question stumps you, tap <b>📖 I don't know</b> and it lands here for real-life study.</div>`;
     return `<div class="list">${ids.map(id => {
-      const e = S.study[id], M = mod(e.m);
+      const e = S.study[id], tp = e.tp || (ITEMS[id] && ITEMS[id].topic) || (qById(id) && qById(id).tp) || "equity", M = mod(mkey(tp, e.m));
       const asked = e.kind === "pitch" ? "Pitch Day question" : (e.label || "Client call");
       return `<div class="li studyitem"><div class="sq">${esc(asked)} · added ${e.day === today() ? "today" : (today() - e.day) + "d ago"}</div>
         <div class="sp">${esc(e.prompt)}</div>
-        <div class="sw">Read: <b>Module ${M.id}, ${esc(M.name)}</b></div>
+        <div class="sw">Read: <b>${esc(topic(tp).name)}, Module ${M ? M.id : e.m}${M ? ", " + esc(M.name) : ""}</b></div>
         <button class="studied" data-id="${id}">✓ Studied it</button></div>`;
     }).join("")}</div>`;
   }
-  function libraryWin() {
+  let libTopic = null;
+  function libraryWin(tp) {
     Sfx.printer();
-    const all = statsOf(Object.keys(ITEMS));
+    const staffed = staffedTopics();
+    tp = tp || libTopic || LIVE.find(t => staffed.includes(t)) || LIVE[0];
+    libTopic = tp;
+    const all = topicStats(tp), T = topic(tp);
     const n = studyCount();
-    openWin(`<div class="win"><div class="head"><span>Library</span><small>Equity</small></div>
+    const tabs = LIVE.length > 1 ? `<div class="tabs ttabs">${LIVE.map(t => `<button data-tp="${t}" class="${t === tp ? "on" : ""}">${esc(topic(t).short)}</button>`).join("")}</div>` : "";
+    openWin(`<div class="win"><div class="head"><span>Library</span><small>${esc(T.name)}</small></div>
       <div class="body">
         <div class="sect first">📖 Need to study <small>${n}</small></div>
         ${studyList()}
-        <div class="sect">Equity progress <small>${all.total - all.unseen}/${all.total} seen</small></div>
+        ${tabs}
+        <div class="sect">${esc(T.name)} progress <small>${all.total - all.unseen}/${all.total} seen</small></div>
         ${stackBar(all)}${legend(all)}
+        ${staffed.includes(tp) ? "" : `<div class="note" style="color:var(--red)">No ${esc(T.name)} analyst yet. Hire one to start getting these concepts in client calls.</div>`}
         <div class="note">Learned: right the first time. Mastered: right again at a later day's review. Shaky: missed, waiting for a retest. Tap a module to see each concept.</div>
         <div class="sect">Modules</div>
-        ${moduleRows()}
-        <div class="note">Tap Focus here inside a module to pull its new concepts in first. Master 80% of a module to light it up for +5% Equity fees.</div>
+        ${moduleRows(tp)}
+        <div class="note">Tap Focus here inside a module to pull its new concepts in first. Master 80% of a module to light it up for +5% ${esc(T.name)} fees.</div>
       </div>
       <div class="foot"><button id="x">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
-      root.querySelectorAll(".modbtn").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(+b.dataset.m); });
+      root.querySelectorAll(".ttabs button").forEach(b => b.onclick = () => { Sfx.tap(); libraryWin(b.dataset.tp); });
+      root.querySelectorAll(".modbtn").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(b.dataset.k); });
       root.querySelectorAll(".studied").forEach(b => b.onclick = () => {
         const pitchQ = S.study[b.dataset.id] && S.study[b.dataset.id].kind === "pitch";
         Sfx.register(); markStudied(b.dataset.id);
         toast(pitchQ ? "✓ Back in the Pitch Day pool." : "✓ Back in rotation. It comes up after a few calls, asked a new way.", "gold");
-        libraryWin();
+        libraryWin(tp);
       });
     });
   }
-  const remainingIn = m => NEW_ORDER.equity.some(id => isNew(id) && ITEMS[id].m === m);
-  const isFocus = m => !!(S.focus && S.focus.equity === m);
-  function moduleWin(m, filter = "all") {
-    const M = mod(m), st = moduleStats(m);
+  const remainingIn = (tp, m) => (NEW_ORDER[tp] || []).some(id => isNew(id) && ITEMS[id].m === m);
+  const isFocus = (tp, m) => !!(S.focus && S.focus[tp] === m);
+  function moduleWin(key, filter = "all") {
+    const M = mod(key), tp = M.tp, m = M.id, C = TC[tp], st = moduleStats(key);
     const show = id => filter === "all" || status(id) === filter;
     const terms = C.terms.filter(t => t.m === m && show(t.id)).map(t => `<div class="li">${cardIcon(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
     const forms = C.formulas.filter(f => f.m === m && show(f.id)).map(f => `<div class="li">${cardIcon(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
-    const traps = filter === "all" ? C.traps.filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("") : "";
+    const traps = filter === "all" ? (C.traps || []).filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("") : "";
     const tabs = [{ k: "all", label: "All", n: st.total }].concat(STATES.map(x => ({ k: x.k, label: x.label, n: st[x.k] })));
     openWin(`<div class="win"><div class="head"><span>M${m} ${esc(M.short)}</span><small>Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</small></div>
-      <div class="body"><div class="subtitle">${esc(M.name)}</div>
+      <div class="body"><div class="subtitle">${esc(topic(tp).name)} · ${esc(M.name)}</div>
         ${stackBar(st)}
         <div class="tabs">${tabs.map(t => `<button data-f="${t.k}" class="${t.k === filter ? "on" : ""}" ${t.n || t.k === "all" ? "" : "disabled"}>${t.label} ${t.n}</button>`).join("")}</div>
         ${terms ? `<div class="sect">Key terms</div><div class="list">${terms}</div>` : ""}
@@ -910,11 +951,11 @@
         ${!terms && !forms ? `<div class="note">Nothing in this group.</div>` : ""}
         ${traps ? `<div class="sect">Exam traps</div><div class="list">${traps}</div>` : ""}
       </div>
-      <div class="foot"><button id="back">Back</button>${remainingIn(m) ? `<button id="focus" class="${isFocus(m) ? "" : "primary"}">${isFocus(m) ? "Stop focusing" : "Focus here"}</button>` : ""}<button id="x">Close</button></div></div>`, root => {
-      root.querySelector("#back").onclick = () => { Sfx.tap(); libraryWin(); };
-      root.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(m, b.dataset.f); });
+      <div class="foot"><button id="back">Back</button>${remainingIn(tp, m) ? `<button id="focus" class="${isFocus(tp, m) ? "" : "primary"}">${isFocus(tp, m) ? "Stop focusing" : "Focus here"}</button>` : ""}<button id="x">Close</button></div></div>`, root => {
+      root.querySelector("#back").onclick = () => { Sfx.tap(); libraryWin(tp); };
+      root.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(key, b.dataset.f); });
       const fb = root.querySelector("#focus");
-      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus.equity = isFocus(m) ? null : m; save(); toast(S.focus.equity ? `New concepts will come from M${m} first.` : "Back to the normal order."); moduleWin(m, filter); };
+      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus[tp] = isFocus(tp, m) ? null : m; save(); toast(S.focus[tp] ? `New ${esc(topic(tp).short)} concepts will come from M${m} first.` : "Back to the normal order."); moduleWin(key, filter); };
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
     });
   }
@@ -930,11 +971,11 @@
       <div class="body"><div class="card" style="margin-bottom:8px"><img class="pt" src="${Sprites.cowUrl(s.species, s.v, 2)}" alt="">
         <div><div class="quip">"${esc(c.quip)}"</div>${statBar("Sales", s.s)}${statBar("Network", s.n)}${statBar("Drive", s.d)}<div class="meta">${moodTxt}</div></div></div>
         <div class="kv"><span>Concepts introduced</span><span>${st.intro}/${st.total}</span><span>Mastered</span><span>${st.mastered}</span><span>Due today</span><span>${st.due}</span></div>
-        <div class="sect">${esc(t.name)} skills</div>${moduleRows()}</div>
+        <div class="sect">${esc(t.name)} skills</div>${moduleRows(s.topic)}</div>
       <div class="foot"><button id="x">Close</button><button id="tr" class="primary">Take a call</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
       root.querySelector("#tr").onclick = () => { closeWin(); nextClient(s.topic); };
-      root.querySelectorAll(".modbtn").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(+b.dataset.m); });
+      root.querySelectorAll(".modbtn").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(b.dataset.k); });
     });
   }
 
@@ -948,7 +989,7 @@
         <span>Deals closed</span><span>${S.deals}</span><span>Staff</span><span>${S.staff.length}</span>
         <span>Concepts seen</span><span>${tt.intro}/${TOTAL_ITEMS}</span><span>Mastered</span><span>${tt.mastered}</span>
         <span>Due today</span><span>${tt.due}</span><span>Due tomorrow</span><span>${tt.tomorrow}</span>
-        <span>Deal tombstones</span><span>${tombCount()}/${C.questions.length}</span>
+        <span>Deal tombstones</span><span>${tombCount()}/${QUESTIONS.length}</span>
         <span>Days to exam</span><span>${Math.max(0, daysLeft())}</span></div>
         <div class="sect">Gear</div><div class="gear">${GEAR.map(g => `<div class="g ${tombCount() >= g.tombs ? "on" : ""}"><img src="${Sprites.url(g.sprite, 2)}" alt=""><div><b>${esc(g.name)}</b><span>${tombCount() >= g.tombs ? esc(g.effect) : "Locked · " + g.tombs + " tombstones"}</span></div></div>`).join("")}</div></div>
       <div class="foot"><button id="x" class="primary">Back to work</button></div></div>`, root => {
@@ -970,7 +1011,7 @@
         <button id="remind" class="wide">Phone reminders</button>
         ${Store.cloud ? "" : `<button id="sendnotes" class="wide">Send notes to Claude (${Store.notes().filter(n => !n.shared).length} new)</button>`}
         <button id="reset" class="wide" style="color:var(--red)">Reset all progress</button>
-        <div class="note">${Store.cloud ? "Progress saves on this device and to your Claude account." : "Progress saves on this device. Use a backup code to move it."} Content: CFA Level I Equity.</div>
+        <div class="note">${Store.cloud ? "Progress saves on this device and to your Claude account." : "Progress saves on this device. Use a backup code to move it."} Content: CFA Level I ${esc(LIVE.map(t => topic(t).name).join(", "))}.</div>
       </div>
       <div class="foot"><button id="x" class="primary">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
@@ -1076,11 +1117,11 @@
   function helpWin(first) {
     openWin(`<div class="win"><div class="head"><span>How to play</span></div>
       <div class="body">
-        <p><b>Clients bring deals.</b> Each deal is a term or formula from your Equity notes. Answer right to close it and earn fees.</p>
+        <p><b>Clients bring deals.</b> Each deal is a term or formula from your CFA notes, sent to the desk for that topic. Answer right to close it and earn fees.</p>
         <p><b>Your memory runs the firm.</b> Concepts you get right come back after 1, 2, 4, 7 and 12 days, never later than exam day. Miss one and it comes back after a few other calls, asked the other way round.</p>
         <p><b>Don't let the desk get sleepy.</b> Any overdue concept halves that desk's fees until you review it. Three right in a row sets it on fire 🔥.</p>
-        <p><b>Grow the team.</b> New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
-        <p><b>Pitch Day.</b> Once a day, pitch 5 exam-style questions to a big client. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear. Clear all your reviews to unlock a bonus pitch.</p>
+        <p><b>Grow the team.</b> Each CFA topic has its own desk, and the first analyst on a desk is free. New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
+        <p><b>Pitch Day.</b> Once a day, pitch 5 exam-style questions from your staffed desks to a big client. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear. Clear all your reviews to unlock a bonus pitch.</p>
         <p><b>Level up.</b> Every right answer earns XP, with bonuses for reviews, masteries, Pitch Day wins and tombstones. Each level adds +3% to fees, and offices unlock at levels 4, 9 and 15.</p>
         <p><b>Spot something off?</b> Tap 📝 to leave Claude a note.</p>
         <p><b>Reminders.</b> Add the game to your home screen, then turn on Menu, Phone reminders.</p>
@@ -1153,7 +1194,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26b" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26c" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);
@@ -1172,5 +1213,5 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { hud(); refreshScene(false); morning(false); } });
   }
 
-  window.__game = { get S() { return S; }, pickPitch, pitchesLeft, ITEMS, pickDeal, buildDeal, grade, totals, topicStats, openSeats, EXAM_DAY };
+  window.__game = { get S() { return S; }, QUESTIONS, MODS, renderQ, libraryWin, moduleWin, pitchWin, hireWin, pickPitch, pitchesLeft, ITEMS, pickDeal, buildDeal, grade, totals, topicStats, openSeats, EXAM_DAY };
 })();

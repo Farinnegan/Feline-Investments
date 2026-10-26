@@ -301,3 +301,21 @@ button { font-family: var(--ui); cursor: pointer; }
 .win .studyitem .studied { margin-top: 8px; width: 100%; padding: 8px; background: linear-gradient(#e3f6e8, #c9ebd3); border-color: var(--green); box-shadow: 0 3px 0 #1d6b3a; color: #1d6b3a; }
 #actions .row button.count::after { content: attr(data-n); position: absolute; top: -8px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #c96a3a; color: #fff; font-size: 11px; line-height: 15px; border: 2px solid #0f1a38; }
 .btnlink.sent { background: linear-gradient(#e3f6e8, #c9ebd3); color: #1d6b3a; }
+
+/* Pitch Day questions with data tables and statement lists */
+.prompt.qtext { font-size: 16px; }
+.qtext p { margin: 0 0 8px; }
+.qtext p:last-child { margin-bottom: 0; }
+.qtext ul { margin: 0 0 8px; padding-left: 20px; }
+.qtext li { margin: 2px 0; }
+.qt { width: 100%; border-collapse: collapse; margin: 4px 0 10px; font-size: 14px; line-height: 1.3; background: #fff; }
+.qt th, .qt td { border: 1px solid #c9d4ef; padding: 4px 6px; text-align: left; vertical-align: top; }
+.qt th { background: #dfe6f7; font-family: var(--ui); font-size: 12px; }
+.qt td:not(:first-child), .qt th:not(:first-child) { text-align: right; white-space: nowrap; }
+.ttabs { margin-top: 14px; }
+.ttabs button { flex: 1; }
+.qtwrap { overflow-x: auto; margin: 4px -4px 10px; padding: 0 4px; }
+.qtwrap .qt { margin: 0; }
+.qt.wide { font-size: 12px; }
+.qt.wide th, .qt.wide td { padding: 3px 4px; }
+.qt.wide td:not(:first-child) { white-space: normal; }
