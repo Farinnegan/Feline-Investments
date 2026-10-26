@@ -319,3 +319,4 @@ button { font-family: var(--ui); cursor: pointer; }
 .qt.wide { font-size: 12px; }
 .qt.wide th, .qt.wide td { padding: 3px 4px; }
 .qt.wide td:not(:first-child) { white-space: normal; }
+.list .li { overflow-wrap: anywhere; }

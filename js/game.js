@@ -428,7 +428,7 @@
     $("s-next").textContent = S.level >= MAX_LEVEL ? `Lv ${MAX_LEVEL} · Max level` : `Lv ${S.level} · ${Math.floor(pct * 100)}%`;
     const pl = pitchesLeft();
     $("btn-pitch").classList.toggle("ready", pl > 0);
-    $("btn-pitch").classList.toggle("dot", pl > 0);
+    $("btn-pitch").classList.toggle("dot", pl > 0 && !S.pitch.runs);
     const sc = studyCount();
     $("btn-library").classList.toggle("count", sc > 0);
     $("btn-library").dataset.n = sc;
@@ -446,8 +446,10 @@
   // ---------- the client loop ----------
   let busy = false;
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  let desk = null;                       // set when you take calls from one analyst; "Next client" stays on that desk
   async function nextClient(onlyTopic) {
     if (busy) return;
+    desk = onlyTopic || null;
     Sfx.unlock();
     if (!S.staff.length) { hireWin(); return; }
     const pick = pickDeal(onlyTopic);
@@ -485,7 +487,7 @@
         <div class="foot" id="prefoot"><button id="d-decline">Decline client</button></div>
         <div class="foot" id="dealfoot" style="display:none">
           <button id="d-office">Office</button>
-          <button id="d-next" class="primary">Next client</button>
+          <button id="d-next" class="primary">${desk ? "Next " + esc(topic(desk).short) + " client" : "Next client"}</button>
         </div>
       </div>`, root => {
       root.querySelectorAll(".opt").forEach(btn => btn.addEventListener("click", () => answer(deal, si, +btn.dataset.i, root)));
@@ -586,7 +588,7 @@
     delete modal.dataset.lock;
     closeWin(); Scene.clientLeave();
     busy = false; $("btn-client").disabled = false;
-    if (again) setTimeout(() => nextClient(), 350);
+    if (again) setTimeout(() => nextClient(desk), 350);
   }
 
   let toldOffice = S.office, toldSeats = {};
@@ -676,7 +678,8 @@
   // gear and are needed for office moves. Missed questions return on a later day.
   function rollPitchDay() { const d = today(); if (S.pitch.day !== d) { S.pitch.day = d; S.pitch.runs = 0; } }
   function vaultOpen() { const tt = totals(); return S.staff.length > 0 && tt.intro > 0 && tt.due === 0; }
-  function pitchesLeft() { rollPitchDay(); return Math.max(0, 1 + (vaultOpen() ? 1 : 0) - S.pitch.runs); }
+  // Pitch Day is open any time, as often as you like
+  function pitchesLeft() { rollPitchDay(); return pitchPool().length ? 1 : 0; }
   const qState = id => S.pitch.q[id] || (S.pitch.q[id] = { okDays: [], seen: 0, wrongDay: null, lastDay: null });
 
   // Pitch Day draws from every desk you have staffed
@@ -693,6 +696,9 @@
       open.filter(q => st(q).seen && st(q).wrongDay !== null && st(q).okDays.length === 0), // missed before
       open.filter(q => st(q).seen && st(q).okDays.length !== 1 && !(st(q).wrongDay !== null && st(q).okDays.length === 0))
     ];
+    // once every question has had its turn today, keep going with today's ones (misses first)
+    const again = pool.filter(q => !S.study[q.id] && !open.includes(q) && (allDone || !S.pitch.tombs.includes(q.id)));
+    groups.push(again.filter(q => !st(q).okDays.includes(d)), again.filter(q => st(q).okDays.includes(d)));
     const out = [];
     groups.forEach(g => shuffle(g.slice()).forEach(q => { if (out.length < PITCH_LEN && !out.includes(q)) out.push(q); }));
     return out.map(q => q.id);
@@ -703,11 +709,11 @@
     const nextGear = GEAR.find(g => tombCount() < g.tombs);
     const inst = INSTITUTIONS[(today() + S.pitch.runs) % INSTITUTIONS.length];
     const qs = left ? pickPitch() : [];
-    const why = left ? "" : vaultOpen() || S.pitch.runs >= 2 ? "You've pitched for today. Come back tomorrow." : "Today's pitch is done. Clear all your reviews to open the vault and unlock a bonus pitch.";
+    const why = "Hire an analyst first. Pitch Day uses the questions from your staffed desks.";
     openWin(`<div class="win"><div class="head"><span>Pitch Day</span><small>${tombCount()}/${QUESTIONS.length} tombstones</small></div>
       <div class="body">
         <div class="pitchhero"><img src="${Sprites.url(inst.sprite, 3)}" alt=""><div><b>${esc(inst.name)}</b><span>wants to hear your pitch.</span></div></div>
-        ${left && qs.length ? `<p>${qs.length} exam-style questions from ${esc(pitchTopicsText())}. Every right answer wins a mandate worth about <b>${money(pitchAum())}</b> in AUM. Get a question right on two different days and it becomes a deal tombstone for your wall.</p>` : `<p>${esc(why || "Every question has been pitched today. Come back tomorrow.")}</p>`}
+        ${left && qs.length ? `<p>${qs.length} exam-style questions from ${esc(pitchTopicsText())}. Every right answer wins a mandate worth about <b>${money(pitchAum())}</b> in AUM. Get a question right on two different days and it becomes a deal tombstone for your wall. Pitch as many times as you like.</p>` : `<p>${esc(why)}</p>`}
         <div class="sect">Gear</div>
         <div class="gear">${GEAR.map(g => `<div class="g ${tombCount() >= g.tombs ? "on" : ""}"><img src="${Sprites.url(g.sprite, 2)}" alt=""><div><b>${esc(g.name)}</b><span>${tombCount() >= g.tombs ? esc(g.effect) : g.tombs + " tombstones · " + esc(g.effect)}</span></div></div>`).join("")}</div>
         ${nextGear ? `<div class="note">Next: ${esc(nextGear.name)} at ${nextGear.tombs} tombstones.</div>` : ""}
@@ -750,7 +756,7 @@
     modal.dataset.lock = "1";
     const pips = run.qs.map((_, k) => `<i class="${k < run.i ? "done" : k === run.i ? "now" : ""}"></i>`).join("");
     const st = S.pitch.q[q.id];
-    const tag = st && st.okDays.length === 1 ? "<span class='tag new'>Tombstone chance</span>" : st && st.seen ? "<span class='tag'>Seen before</span>" : "<span class='tag'>New question</span>";
+    const tag = st && st.lastDay === today() ? "<span class='tag prac'>Practice round</span>" : st && st.okDays.length === 1 ? "<span class='tag new'>Tombstone chance</span>" : st && st.seen ? "<span class='tag'>Seen before</span>" : "<span class='tag'>New question</span>";
     openWin(`<div class="win"><div class="head"><span>${esc(run.inst.name)}</span><small>Question ${run.i + 1} of ${run.qs.length}</small></div>
       <div class="body"><div class="pips2">${pips}</div><div class="pitchtop"><div>${tag}<span class="tag">${esc(topic(q.tp).short)} M${q.m}</span></div><button id="p-idk" class="idk">📖 I don't know</button></div>
         <div class="prompt qtext">${renderQ(q)}</div>
@@ -780,9 +786,10 @@
         qs.seen++; qs.lastDay = d;
         let html;
         if (right) {
-          const aum = pitchAum();
-          run.correct++; run.aum += aum; run.cash += 1500; S.aum += aum; S.cash += 1500;
-          let pxp = XP.pitch;
+          const repeat = qs.okDays.includes(d);                       // already right today: a practice round
+          const aum = Math.round(pitchAum() * (repeat ? 0.4 : 1)), fees = repeat ? 600 : 1500;
+          run.correct++; run.aum += aum; run.cash += fees; S.aum += aum; S.cash += fees;
+          let pxp = repeat ? XP.practice : XP.pitch;
           if (!qs.okDays.includes(d)) qs.okDays.push(d);
           let tombMsg = qs.okDays.length === 1 ? "Get it right on another day to earn its tombstone." : "";
           if (qs.okDays.length >= 2 && !S.pitch.tombs.includes(q.id)) {
@@ -794,7 +801,7 @@
             if (g) setTimeout(() => { Sfx.fanfare(); toast("🎁 New gear: " + esc(g.name) + ". " + esc(g.effect), "gold"); }, 1400);
           }
           Sfx.register(); Scene.ceoCheer(); gainXP(pxp, -1); run.xp = (run.xp || 0) + pxp;
-          html = `<div class="result good"><div class="title">Mandate won</div><div class="why">${esc(q.why)}</div><div class="money">+${money(aum)} AUM · +$1.5K fees · +${pxp} XP${tombMsg ? " · " + tombMsg : ""}</div></div>`;
+          html = `<div class="result good"><div class="title">Mandate won</div><div class="why">${esc(q.why)}</div><div class="money">+${money(aum)} AUM · +${money(fees)} fees · +${pxp} XP${repeat ? " (practice round: already right today)" : ""}${tombMsg ? " · " + tombMsg : ""}</div></div>`;
         } else {
           qs.wrongDay = d;
           Sfx.thud();
@@ -817,7 +824,7 @@
     openWin(`<div class="win"><div class="head"><span>Pitch results</span><small>${esc(run.inst.name)}</small></div>
       <div class="body"><div class="pitchhero"><img src="${Sprites.url(run.inst.sprite, 3)}" alt=""><div><b>${run.correct} of ${answered} mandates won</b><span>${run.correct ? "They're impressed." : "They'll be back."}</span></div></div>
         <div class="kv"><span>XP earned</span><span>+${run.xp || 0}</span><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span>${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}<span>Total tombstones</span><span>${tombCount()}/${QUESTIONS.length}</span></div>
-        ${pitchesLeft() ? `<div class="note">You have ${pitchesLeft()} more pitch${pitchesLeft() > 1 ? "es" : ""} today.</div>` : vaultOpen() ? `<div class="note">That's it for today. Next pitch tomorrow.</div>` : `<div class="note">Clear all of today's reviews to open the vault and unlock a bonus pitch.</div>`}
+        <div class="note">Pitch again any time. Questions you've already got right today come back as practice rounds that pay less.</div>
       </div>
       <div class="foot"><button id="x" class="primary">Back to the office</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
@@ -1064,23 +1071,39 @@
     if (cur.length) out.push(cur);
     return out;
   }
-  function notesWin(resend) {
+  // One button at a time. A GitHub link can only carry so much text, so if there are many new
+  // notes the button sends as many as fit, and then offers the rest.
+  function notesText(notes) {
+    return notes.map((n, i) => {
+      const q = n.screen && n.screen.question;
+      return `${i + 1}. ${n.kind}: ${n.text}` + (n.pointed ? `\n   Pointing at: ${n.pointed.label}` : "") + (q ? `\n   Question (${q.itemId}): ${q.prompt}\n   Options: ${q.options.join(" | ")}` : "");
+    }).join("\n\n");
+  }
+  function notesWin() {
     const all = Store.notes();
-    const weekAgo = Date.now() - 7 * 864e5;
-    const pick = resend ? all.filter(n => Date.parse(n.at) >= weekAgo) : all.filter(n => !n.shared);
-    const batches = noteBatches(pick);
-    const links = batches.map((b, i) => `<a class="btnlink sendlink" data-i="${i}" href="${Reminders.notesIssueUrl(b, { part: batches.length > 1 ? (i + 1) + "/" + batches.length : "" })}" target="_blank" rel="noopener">${batches.length > 1 ? `Send part ${i + 1} of ${batches.length}` : `Send ${b.length} note${b.length > 1 ? "s" : ""}`} to GitHub</a>`).join("");
-    openWin(`<div class="win"><div class="head"><span>Notes for Claude</span><small>${all.length} total</small></div>
-      <div class="body">${pick.length ? `<p>${pick.length} ${resend ? "note" + (pick.length > 1 ? "s" : "") + " from the last 7 days" : "new note" + (pick.length > 1 ? "s" : "")}. Tap ${batches.length > 1 ? "each button" : "the button"}, then <b>Submit new issue</b> on GitHub.</p>${links}` : `<p>No new notes. Tap 📝 at the top any time to add one.</p>`}
-        ${resend ? "" : `<button id="resend" class="wide">Resend notes from the last 7 days</button>`}
-        <div class="list">${all.slice().reverse().slice(0, 12).map(n => `<div class="li"><b>${esc(n.kind)}</b> · ${esc(n.text)}${n.shared ? " <span class='tag'>sent</span>" : ""}</div>`).join("")}</div></div>
+    const fresh = all.filter(n => !n.shared);
+    const batch = fresh.length ? noteBatches(fresh)[0] : [];
+    const rest = fresh.length - batch.length;
+    const label = !rest ? `Send ${batch.length} new note${batch.length > 1 ? "s" : ""} to GitHub` : `Send the first ${batch.length} of ${fresh.length} new notes`;
+    openWin(`<div class="win"><div class="head"><span>Notes for Claude</span><small>${fresh.length} new</small></div>
+      <div class="body">${fresh.length ? `<p>Tap the button, then <b>Submit new issue</b> on GitHub.${rest ? " Your notes are too long for one GitHub link, so they go in two steps. Come back here after submitting for the rest." : ""}</p>
+        <a class="btnlink sendlink" href="${Reminders.notesIssueUrl(batch)}" target="_blank" rel="noopener">${label}</a>
+        <button id="copy" class="wide">Or copy them to paste to Claude</button>`
+        : `<p>All your notes have been sent. Tap 📝 at the top any time to add one.</p>`}
+        <div class="sect">Recent notes</div>
+        <div class="list">${all.slice().reverse().slice(0, 12).map(n => `<div class="li"><b>${esc(n.kind)}</b> · ${esc(n.text)}${n.shared ? " <span class='tag'>sent</span>" : " <span class='tag new'>new</span>"}</div>`).join("")}</div></div>
       <div class="foot"><button id="x" class="primary">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
-      const rs = root.querySelector("#resend"); if (rs) rs.onclick = () => { Sfx.tap(); notesWin(true); };
-      root.querySelectorAll(".sendlink").forEach(a => a.addEventListener("click", () => {
-        Store.markShared(batches[+a.dataset.i].map(n => n.id));
-        a.classList.add("sent"); a.textContent = "✓ Opened. Submit it on GitHub";
-      }));
+      const a = root.querySelector(".sendlink");
+      if (a) a.addEventListener("click", () => {
+        Store.markShared(batch.map(n => n.id));
+        setTimeout(() => notesWin(), 600);                       // shows the next step, or "all sent"
+      });
+      const cp = root.querySelector("#copy");
+      if (cp) cp.onclick = async () => {
+        try { await navigator.clipboard.writeText(notesText(fresh)); Store.markShared(fresh.map(n => n.id)); toast("Copied. Paste it in your chat with Claude."); notesWin(); }
+        catch (e) { toast("Couldn't copy here. Use the GitHub button."); }
+      };
     });
   }
 
@@ -1123,7 +1146,7 @@
         <p><b>Your memory runs the firm.</b> Concepts you get right come back after 1, 2, 4, 7 and 12 days, never later than exam day. Miss one and it comes back after a few other calls, asked the other way round.</p>
         <p><b>Don't let the desk get sleepy.</b> Any overdue concept halves that desk's fees until you review it. Three right in a row sets it on fire 🔥.</p>
         <p><b>Grow the team.</b> Each CFA topic has its own desk, and the first analyst on a desk is free. New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
-        <p><b>Pitch Day.</b> Once a day, pitch 5 exam-style questions from your staffed desks to a big client. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear. Clear all your reviews to unlock a bonus pitch.</p>
+        <p><b>Pitch Day.</b> Pitch 5 exam-style questions from your staffed desks to a big client, as often as you like. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear.</p>
         <p><b>Level up.</b> Every right answer earns XP, with bonuses for reviews, masteries, Pitch Day wins and tombstones. Each level adds +3% to fees, and offices unlock at levels 4, 9 and 15.</p>
         <p><b>Spot something off?</b> Tap 📝 to leave Claude a note.</p>
         <p><b>Reminders.</b> Add the game to your home screen, then turn on Menu, Phone reminders.</p>
@@ -1177,7 +1200,7 @@
     if (hasGear("open-vault")) { interest = Math.min(5000, Math.round(S.cash * 0.02)); S.cash += interest; save(); hud(); }
     openWin(`<div class="win"><div class="head"><span>Morning report</span><small>${dl > 0 ? "D-" + dl : ""}</small></div>
       <div class="body"><div class="vault"><img src="${Sprites.url(tt.due ? "locked-vault" : "open-vault", 2)}" alt=""><div>${tt.due ? `Clear today's ${tt.due} review${tt.due > 1 ? "s" : ""} to open the vault.` : "Vault open. No reviews due!"}</div></div>
-        <div class="kv"><span>Reviews due</span><span style="color:var(--red)">${tt.due}</span><span>New concepts waiting</span><span>${nl}</span>${studyCount() ? `<span>📖 Need to study</span><span>${studyCount()}</span>` : ""}<span>Pitch Day</span><span>${pitchesLeft() ? "Ready" : "Done"}</span><span>AUM</span><span>${money(S.aum)}</span>${interest ? `<span>Vault interest</span><span>+${money(interest)}</span>` : ""}</div>
+        <div class="kv"><span>Reviews due</span><span style="color:var(--red)">${tt.due}</span><span>New concepts waiting</span><span>${nl}</span>${studyCount() ? `<span>📖 Need to study</span><span>${studyCount()}</span>` : ""}<span>Pitch Day</span><span>${S.pitch.runs ? "Open" : "Ready"}</span><span>AUM</span><span>${money(S.aum)}</span>${interest ? `<span>Vault interest</span><span>+${money(interest)}</span>` : ""}</div>
         ${sleepy.length ? `<div class="note" style="color:var(--red)">😴 The ${esc(sleepy.join(", "))} desk is sleepy. Clear its reviews to wake it up.</div>` : `<div class="note">Everyone is sharp today.</div>`}
       </div>
       <div class="foot"><button id="x" class="primary">Let's go</button></div></div>`, root => {
@@ -1196,7 +1219,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26d" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26e" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);
@@ -1215,5 +1238,5 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { hud(); refreshScene(false); morning(false); } });
   }
 
-  window.__game = { get S() { return S; }, QUESTIONS, MODS, renderQ, libraryWin, moduleWin, pitchWin, hireWin, pickPitch, pitchesLeft, ITEMS, pickDeal, buildDeal, grade, totals, topicStats, openSeats, EXAM_DAY };
+  window.__game = { get S() { return S; }, nextClient, notesWin, QUESTIONS, MODS, renderQ, libraryWin, moduleWin, pitchWin, hireWin, pickPitch, pitchesLeft, ITEMS, pickDeal, buildDeal, grade, totals, topicStats, openSeats, EXAM_DAY };
 })();
