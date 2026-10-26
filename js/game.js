@@ -9,7 +9,7 @@
 
   // ---------- tuning ----------
   const INTERVALS = [1, 2, 4, 7, 12];   // days for boxes 1..5, short enough to cycle several times before the exam
-  const MASTER_BOX = 4;                  // box 4+ = mastered (recalled on 4 separate days)
+  const MASTER_BOX = 2;                  // learned = right once; mastered = right again at a later day's review
   const RELEARN_GAP = 5;                 // a missed concept waits at least this many calls before coming back
   const MAX_SHAKY = 8;                   // no daily cap: new concepts keep coming while fewer than this many misses wait for a retest
   const OFFICES = [
@@ -115,7 +115,8 @@
       staff: [], items: {}, streak: {}, recent: [], rr: {},
       newDay: today(), newCount: {}, newCap: 12,
       lastDay: null, muted: false,
-      pitch: { day: null, runs: 0, q: {}, tombs: [] }
+      pitch: { day: null, runs: 0, q: {}, tombs: [] },
+      study: {}                                                       // Need to study ledger: id -> entry
     };
   }
   // Saves are upgraded in place, never wiped: new fields get defaults, old progress stays.
@@ -124,6 +125,7 @@
     if (!old || typeof old !== "object") return freshState();
     const S = Object.assign(freshState(), old);
     S.pitch = Object.assign({ day: null, runs: 0, q: {}, tombs: [] }, old.pitch || {});
+    if (!S.study || typeof S.study !== "object") S.study = {};
     ["items", "streak", "rr", "newCount"].forEach(k => { if (!S[k] || typeof S[k] !== "object") S[k] = {}; });
     if (!Array.isArray(S.staff)) S.staff = [];
     if (!Array.isArray(S.recent)) S.recent = [];
@@ -163,16 +165,28 @@
   const hasGear = sprite => GEAR.some(g => g.sprite === sprite && tombCount() >= g.tombs);
 
   // ---------- spaced repetition ----------
+  // where a concept stands: unseen, study (you said you don't know it), shaky (missed, waiting for a
+  // retest), learned (right once), mastered (right again at a later day's review)
+  function status(id) {
+    if (S.study[id]) return "study";
+    const s = S.items[id];
+    if (!s) return "unseen";
+    if (s.flipTo || !s.ok) return "shaky";
+    return s.b >= MASTER_BOX ? "mastered" : "learned";
+  }
   function statsOf(ids) {
-    const d = today(); let intro = 0, due = 0, overdue = 0, mastered = 0, tomorrow = 0;
+    const d = today();
+    const r = { total: ids.length, intro: 0, due: 0, overdue: 0, tomorrow: 0, unseen: 0, study: 0, shaky: 0, learned: 0, mastered: 0 };
     ids.forEach(id => {
-      const s = S.items[id]; if (!s) return;
-      intro++;
-      if (s.due <= d) due++; else if (s.due === d + 1) tomorrow++;
-      if (s.due < d) overdue++;
-      if (s.b >= MASTER_BOX) mastered++;
+      const st = status(id);
+      r[st]++;
+      const s = S.items[id];
+      if (s) r.intro++;
+      if (!s || st === "study") return;                  // studying items are paused: never due or overdue
+      if (s.due <= d) r.due++; else if (s.due === d + 1) r.tomorrow++;
+      if (s.due < d) r.overdue++;
     });
-    return { total: ids.length, intro, due, overdue, mastered, tomorrow };
+    return r;
   }
   const topicStats = tp => statsOf(TOPIC_ITEMS[tp] || []);
   const moduleStats = m => statsOf(Object.values(ITEMS).filter(i => i.m === m).map(i => i.id));
@@ -183,20 +197,21 @@
     return { mastered: all.mastered, intro: all.intro, due: act.due, tomorrow: act.tomorrow };
   }
   // shaky = missed concepts still waiting for their retest today
-  function shaky(tp) { const d = today(); return (TOPIC_ITEMS[tp] || []).filter(id => { const st = S.items[id]; return st && st.flipTo && st.due <= d; }).length; }
+  function shaky(tp) { const d = today(); return (TOPIC_ITEMS[tp] || []).filter(id => { const st = S.items[id]; return st && st.flipTo && !st.studied && st.due <= d; }).length; }
   function canIntroduce(tp) { return shaky(tp) < MAX_SHAKY; }
-  function remainingNew(tp) { return (NEW_ORDER[tp] || []).filter(id => !S.items[id]).length; }
+  const isNew = id => !S.items[id] && !S.study[id];
+  function remainingNew(tp) { return (NEW_ORDER[tp] || []).filter(isNew).length; }
   function nextNew(tp) {
     const f = S.focus && S.focus[tp];
-    if (f) { const id = (NEW_ORDER[tp] || []).find(x => !S.items[x] && ITEMS[x].m === f); if (id) return id; }
-    return (NEW_ORDER[tp] || []).find(id => !S.items[id]);
+    if (f) { const id = (NEW_ORDER[tp] || []).find(x => isNew(x) && ITEMS[x].m === f); if (id) return id; }
+    return (NEW_ORDER[tp] || []).find(isNew);
   }
 
   function pickDeal(onlyTopic) {
     rollDay();
     const d = today();
     const live = onlyTopic ? [onlyTopic] : staffedTopics();
-    const ok = id => ITEMS[id] && live.includes(ITEMS[id].topic);
+    const ok = id => ITEMS[id] && live.includes(ITEMS[id].topic) && !S.study[id];
     const unlocked = id => !(S.items[id].lock > S.deals);
     const fresh = id => !S.recent.includes(id);
     const due = Object.keys(S.items).filter(id => ok(id) && S.items[id].due <= d && unlocked(id));
@@ -226,15 +241,17 @@
     if (!s) { s = S.items[id] = { b: 0, due: d, n: 0, ok: 0, bad: 0 }; S.newCount[ITEMS[id].topic] = (S.newCount[ITEMS[id].topic] || 0) + 1; }
     s.n++;
     if (correct) {
-      s.ok++; delete s.flipTo; delete s.lock;
+      s.ok++; delete s.flipTo; delete s.lock; delete s.studied;
       if (deal.mode !== "practice") {
-        s.b = Math.min(5, s.b + 1);
+        if (s.upDay === d || s.missDay === d) s.b = Math.max(s.b, 1);   // same-day retests only count as learned
+        else s.b = Math.min(5, s.b + 1);
+        s.upDay = d;
         let due = d + INTERVALS[s.b - 1];
         if (d < EXAM_DAY) due = Math.max(d + 1, Math.min(due, EXAM_DAY)); // never schedule past exam day
         s.due = due;
       }
     } else {
-      s.bad++; s.b = 1; s.due = d;
+      s.bad++; s.b = 0; s.due = d; s.missDay = d;     // a miss starts it over: next right answer = learned
       s.lock = S.deals + 1 + RELEARN_GAP;                 // comes back only after a few other calls
       s.flipTo = deal.reverse ? "normal" : "reverse";     // ...and asked the other way round
     }
@@ -347,6 +364,9 @@
     const pl = pitchesLeft();
     $("btn-pitch").classList.toggle("ready", pl > 0);
     $("btn-pitch").classList.toggle("dot", pl > 0);
+    const sc = studyCount();
+    $("btn-library").classList.toggle("count", sc > 0);
+    $("btn-library").dataset.n = sc;
     $("btn-hire").classList.toggle("dot", hireOptions().some(o => o.can));
     $("btn-office").classList.toggle("dot", !!(next && officeReady(next)));
     const nl = staffedTopics().reduce((a, tp) => a + remainingNew(tp), 0);
@@ -391,7 +411,7 @@
       <div class="win">
         <div class="head"><span>${esc(deal.label)}</span><small>${esc(st.name)}</small></div>
         <div class="body">
-          <div class="clientrow"><img src="${Sprites.url(deal.client.sprite, 2)}" alt=""><div><b>${esc(deal.client.name)}</b><span>${esc(deal.client.who)}</span></div><div class="tags">${tag}<span class="tag">M${m.id} ${esc(m.short)}</span></div></div>
+          <div class="clientrow"><img src="${Sprites.url(deal.client.sprite, 2)}" alt=""><div><b>${esc(deal.client.name)}</b><span>${esc(deal.client.who)}</span></div><button id="d-idk" class="idk">📖 I don't know</button><div class="tags">${tag}<span class="tag">M${m.id} ${esc(m.short)}</span></div></div>
           <div class="prompt">${deal.prompt}</div>
           <div class="ask">${esc(deal.ask)}</div>
           <div class="opts">${deal.opts.map((o, i) => `<button class="opt" data-i="${i}"><span class="k">${keys[i]}</span><span>${esc(o.text)}</span></button>`).join("")}</div>
@@ -404,6 +424,20 @@
         </div>
       </div>`, root => {
       root.querySelectorAll(".opt").forEach(btn => btn.addEventListener("click", () => answer(deal, si, +btn.dataset.i, root)));
+      root.querySelector("#d-idk").onclick = () => {
+        Sfx.printer();
+        addStudy(deal.id, { kind: "call", m: deal.m, format: deal.type, label: deal.label, prompt: strip(deal.prompt) });
+        S.recent.push(deal.id); if (S.recent.length > 4) S.recent.shift();
+        root.querySelectorAll(".opt, #d-idk").forEach(b => b.disabled = true);
+        root.querySelector(".opts").style.display = "none"; root.querySelector(".ask").style.display = "none";
+        root.querySelector("#res").innerHTML = studiedNote();
+        root.querySelector("#prefoot").style.display = "none";
+        root.querySelector("#dealfoot").style.display = "flex";
+        root.querySelector("#d-next").onclick = () => { Sfx.tap(); finishDeal(true); };
+        root.querySelector("#d-office").onclick = () => { Sfx.tap(); finishDeal(false); };
+        Scene.staffSay(si, "I'll hit the books.", 1400);
+        save(); hud(); refreshScene(false);
+      };
       root.querySelector("#d-decline").onclick = () => {
         Sfx.tap(); S.recent.push(deal.id); if (S.recent.length > 4) S.recent.shift();
         Scene.staffSay(si, "Maybe next time.", 1200); finishDeal(false);
@@ -455,6 +489,25 @@
     checkMilestones();
     save(); hud(); refreshScene(false);
   }
+  // ---------- Need to study ledger ----------
+  function addStudy(id, entry) { S.study[id] = Object.assign({ day: today(), at: Date.now() }, entry); }
+  const studyCount = () => Object.keys(S.study).length;
+  const studiedNote = () => `<div class="result study"><div class="title">Added to Need to study</div>
+    <div class="why">No guessing, no penalty. Look it up in your book, then open <b>Library, Need to study</b> and tap <b>Studied it</b>. It stays out of your client calls until then.</div></div>`;
+  function markStudied(id) {
+    const e = S.study[id]; if (!e) return;
+    delete S.study[id];
+    if (e.kind === "pitch") { const qs = qState(id); qs.wrongDay = today(); }       // comes back in a later pitch
+    else {
+      const d = today();
+      const s = S.items[id] || (S.items[id] = { b: 0, due: d, n: 0, ok: 0, bad: 0 });
+      s.b = 0; s.due = d; s.studied = true;
+      s.lock = S.deals + 1 + RELEARN_GAP;                                           // back after a few other calls
+      s.flipTo = /^r/.test(e.format || "") ? "normal" : "reverse";                  // ...asked the other way round
+    }
+    save(); hud(); refreshScene(false);
+  }
+
   const CTX = { question: null };
   const strip = h => String(h).replace(/<[^>]+>/g, "");
   const nameOf = id => ITEMS[id].kind === "term" ? ITEMS[id].src.term : ITEMS[id].src.name;
@@ -560,7 +613,7 @@
   function pickPitch() {
     const d = today();
     const allDone = C.questions.every(q => S.pitch.tombs.includes(q.id));
-    const open = C.questions.filter(q => { const st = S.pitch.q[q.id]; return !(st && st.lastDay === d) && (allDone || !S.pitch.tombs.includes(q.id)); });
+    const open = C.questions.filter(q => { const st = S.pitch.q[q.id]; return !S.study[q.id] && !(st && st.lastDay === d) && (allDone || !S.pitch.tombs.includes(q.id)); });
     const st = q => S.pitch.q[q.id] || { okDays: [], seen: 0, wrongDay: null };
     const groups = [
       open.filter(q => st(q).okDays.length === 1),                          // one more right day makes a tombstone
@@ -610,13 +663,25 @@
     const st = S.pitch.q[q.id];
     const tag = st && st.okDays.length === 1 ? "<span class='tag new'>Tombstone chance</span>" : st && st.seen ? "<span class='tag'>Seen before</span>" : "<span class='tag'>New question</span>";
     openWin(`<div class="win"><div class="head"><span>${esc(run.inst.name)}</span><small>Question ${run.i + 1} of ${run.qs.length}</small></div>
-      <div class="body"><div class="pips2">${pips}</div><div>${tag}<span class="tag">M${q.m}</span></div>
+      <div class="body"><div class="pips2">${pips}</div><div class="pitchtop"><div>${tag}<span class="tag">M${q.m}</span></div><button id="p-idk" class="idk">📖 I don't know</button></div>
         <div class="prompt">${esc(q.q)}</div>
         <div class="opts">${opts.map((o, k) => `<button class="opt" data-i="${k}"><span class="k">${keys[k]}</span><span>${esc(o.text)}</span></button>`).join("")}</div>
         <div id="res"></div></div>
       <div class="foot" id="prefoot"><button id="leave">End pitch</button></div>
       <div class="foot" id="dealfoot" style="display:none"><button id="nx" class="primary">${run.i + 1 < run.qs.length ? "Next question" : "See results"}</button></div></div>`, root => {
       root.querySelector("#leave").onclick = () => { Sfx.tap(); pitchSummary(run); };
+      root.querySelector("#p-idk").onclick = () => {
+        Sfx.printer();
+        addStudy(q.id, { kind: "pitch", m: q.m, label: "Pitch Day question", prompt: q.q });
+        run.studied = (run.studied || 0) + 1;
+        root.querySelectorAll(".opt, #p-idk").forEach(b => b.disabled = true);
+        root.querySelector(".opts").style.display = "none";
+        root.querySelector("#res").innerHTML = studiedNote().replace("your client calls", "Pitch Day");
+        root.querySelector("#prefoot").style.display = "none";
+        root.querySelector("#dealfoot").style.display = "flex";
+        save(); hud();
+        root.querySelector("#nx").onclick = () => { Sfx.tap(); run.i++; if (run.i < run.qs.length) runPitch(run); else pitchSummary(run); };
+      };
       root.querySelectorAll(".opt").forEach(btn => btn.onclick = () => {
         const btns = [...root.querySelectorAll(".opt")]; btns.forEach(b => b.disabled = true);
         const k = +btn.dataset.i, right = opts[k].right, ri = opts.findIndex(o => o.right);
@@ -658,10 +723,10 @@
   function pitchSummary(run) {
     CTX.question = null;
     delete modal.dataset.lock;
-    const answered = Math.min(run.i + (document.querySelector("#res .result") ? 1 : 0), run.qs.length);
+    const answered = Math.min(run.i + (document.querySelector("#res .result") ? 1 : 0), run.qs.length) - (run.studied || 0);
     openWin(`<div class="win"><div class="head"><span>Pitch results</span><small>${esc(run.inst.name)}</small></div>
       <div class="body"><div class="pitchhero"><img src="${Sprites.url(run.inst.sprite, 3)}" alt=""><div><b>${run.correct} of ${answered} mandates won</b><span>${run.correct ? "They're impressed." : "They'll be back."}</span></div></div>
-        <div class="kv"><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span><span>Total tombstones</span><span>${tombCount()}/${C.questions.length}</span></div>
+        <div class="kv"><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span>${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}<span>Total tombstones</span><span>${tombCount()}/${C.questions.length}</span></div>
         ${pitchesLeft() ? `<div class="note">You have ${pitchesLeft()} more pitch${pitchesLeft() > 1 ? "es" : ""} today.</div>` : vaultOpen() ? `<div class="note">That's it for today. Next pitch tomorrow.</div>` : `<div class="note">Clear all of today's reviews to open the vault and unlock a bonus pitch.</div>`}
       </div>
       <div class="foot"><button id="x" class="primary">Back to the office</button></div></div>`, root => {
@@ -683,7 +748,7 @@
         <span>Moving cost</span><span style="color:${okC ? "var(--green)" : "var(--red)"}">${money(next.cost)}</span>
         <span>Desks</span><span>${next.cap}</span><span>Fee boost</span><span>x${(1 + 0.25 * (S.office + 1)).toFixed(2)}</span></div>
         <div class="note">The progress bar on the office screen blends these three: mastered concepts count most, then tombstones, then cash.</div>
-        <div class="note">Mastered means recalled correctly on 4 separate days. Tombstones come from Pitch Day. Bigger offices hold more analysts once you add more topics.</div>`;
+        <div class="note">Mastered means right again at a later day's review. Tombstones come from Pitch Day. Bigger offices hold more analysts once you add more topics.</div>`;
       btn = `<button id="mv" class="primary" ${okM && okT && okC ? "" : "disabled"}>Move in</button>`;
     } else body += `<div class="note">You run the whole tower.</div>`;
     openWin(`<div class="win"><div class="head"><span>Office</span></div><div class="body">${body}</div>
@@ -700,50 +765,103 @@
   }
 
   // ---------- library (Equity skill tree) ----------
+  const STATES = [
+    { k: "unseen",   label: "Not seen" },
+    { k: "study",    label: "To study" },
+    { k: "shaky",    label: "Shaky" },
+    { k: "learned",  label: "Learned" },
+    { k: "mastered", label: "Mastered" }
+  ];
   function cardIcon(id) {
-    const s = S.items[id];
-    if (!s) return "<span class='unseen'>new</span>";
-    const icon = s.b >= MASTER_BOX ? "mastered-card" : s.b >= 2 ? "learned-mastery-card" : "weak-mastery-card";
-    return `<img class="mi" src="${Sprites.url(icon, 1)}" alt="">`;
+    const st = status(id);
+    if (st === "unseen") return "<span class='unseen'>not seen</span>";
+    const icon = { study: "study-book-stack", shaky: "weak-mastery-card", learned: "learned-mastery-card", mastered: "mastered-card" }[st];
+    return `<img class="mi" src="${Sprites.url(icon, 1)}" alt="${st}" title="${st}">`;
   }
   function badge(m) {
     const st = moduleStats(m); const r = st.total ? st.mastered / st.total : 0;
     const name = r >= 1 ? "platinum-peak-badge" : r >= 0.75 ? "gold-peak-badge" : r >= 0.5 ? "silver-peak-badge" : r >= 0.25 ? "bronze-peak-badge" : "locked-vault";
     return `<img class="bi" src="${Sprites.url(name, 1)}" alt="">`;
   }
+  // stacked bar: mastered, learned, shaky, to study, not seen
+  function stackBar(st) {
+    const order = ["mastered", "learned", "shaky", "study", "unseen"];
+    return `<div class="stack">${order.map(k => st[k] ? `<i class="s-${k}" style="flex:${st[k]}"></i>` : "").join("")}</div>`;
+  }
+  function legend(st) {
+    return `<div class="legend">${STATES.slice().reverse().map(x => `<span><i class="s-${x.k}"></i>${x.label} <b>${st[x.k]}</b></span>`).join("")}</div>`;
+  }
   function moduleRows() {
     return C.modules.slice().sort((a, b) => a.id - b.id).map(m => {
       const st = moduleStats(m.id);
       const lit = st.total && st.mastered / st.total >= 0.8;
-      return `<button class="modbtn" data-m="${m.id}"><span class="ml">${badge(m.id)}<span>M${m.id} ${esc(m.short)}${lit ? " <span class='tag new'>Skill +5%</span>" : ""}${isFocus(m.id) ? " <span class='tag due'>Focus</span>" : ""}</span></span><span>${st.mastered}/${st.total}</span></button>`;
+      return `<button class="modbtn" data-m="${m.id}">
+        <span class="ml">${badge(m.id)}<span>M${m.id} ${esc(m.short)}${lit ? " <span class='tag new'>Skill +5%</span>" : ""}${isFocus(m.id) ? " <span class='tag due'>Focus</span>" : ""}</span></span>
+        <span class="mr">Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</span>
+        ${stackBar(st)}</button>`;
     }).join("");
+  }
+  function studyList() {
+    const ids = Object.keys(S.study).sort((a, b) => (S.study[b].at || 0) - (S.study[a].at || 0));
+    if (!ids.length) return `<div class="note">Nothing here. When a question stumps you, tap <b>📖 I don't know</b> and it lands here for real-life study.</div>`;
+    return `<div class="list">${ids.map(id => {
+      const e = S.study[id], M = mod(e.m);
+      const asked = e.kind === "pitch" ? "Pitch Day question" : (e.label || "Client call");
+      return `<div class="li studyitem"><div class="sq">${esc(asked)} · added ${e.day === today() ? "today" : (today() - e.day) + "d ago"}</div>
+        <div class="sp">${esc(e.prompt)}</div>
+        <div class="sw">Read: <b>Module ${M.id}, ${esc(M.name)}</b></div>
+        <button class="studied" data-id="${id}">✓ Studied it</button></div>`;
+    }).join("")}</div>`;
   }
   function libraryWin() {
     Sfx.printer();
+    const all = statsOf(Object.keys(ITEMS));
+    const n = studyCount();
     openWin(`<div class="win"><div class="head"><span>Library</span><small>Equity</small></div>
-      <div class="body">${moduleRows()}<div class="note">Open a module and tap Focus here to pull its new concepts in first. Each module is a skill for your Equity desk. Master 80% of a module to light it up for +5% Equity fees. Cards crack, glow, then shine as you recall a concept over more days.</div></div>
+      <div class="body">
+        <div class="sect first">📖 Need to study <small>${n}</small></div>
+        ${studyList()}
+        <div class="sect">Equity progress <small>${all.total - all.unseen}/${all.total} seen</small></div>
+        ${stackBar(all)}${legend(all)}
+        <div class="note">Learned: right the first time. Mastered: right again at a later day's review. Shaky: missed, waiting for a retest. Tap a module to see each concept.</div>
+        <div class="sect">Modules</div>
+        ${moduleRows()}
+        <div class="note">Tap Focus here inside a module to pull its new concepts in first. Master 80% of a module to light it up for +5% Equity fees.</div>
+      </div>
       <div class="foot"><button id="x">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
       root.querySelectorAll(".modbtn").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(+b.dataset.m); });
+      root.querySelectorAll(".studied").forEach(b => b.onclick = () => {
+        const pitchQ = S.study[b.dataset.id] && S.study[b.dataset.id].kind === "pitch";
+        Sfx.register(); markStudied(b.dataset.id);
+        toast(pitchQ ? "✓ Back in the Pitch Day pool." : "✓ Back in rotation. It comes up after a few calls, asked a new way.", "gold");
+        libraryWin();
+      });
     });
   }
-  const remainingIn = m => NEW_ORDER.equity.some(id => !S.items[id] && ITEMS[id].m === m);
+  const remainingIn = m => NEW_ORDER.equity.some(id => isNew(id) && ITEMS[id].m === m);
   const isFocus = m => !!(S.focus && S.focus.equity === m);
-  function moduleWin(m) {
+  function moduleWin(m, filter = "all") {
     const M = mod(m), st = moduleStats(m);
-    const terms = C.terms.filter(t => t.m === m).map(t => `<div class="li">${cardIcon(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
-    const forms = C.formulas.filter(f => f.m === m).map(f => `<div class="li">${cardIcon(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
-    const traps = C.traps.filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("");
-    openWin(`<div class="win"><div class="head"><span>M${m} ${esc(M.short)}</span><small>${st.mastered}/${st.total} mastered</small></div>
+    const show = id => filter === "all" || status(id) === filter;
+    const terms = C.terms.filter(t => t.m === m && show(t.id)).map(t => `<div class="li">${cardIcon(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
+    const forms = C.formulas.filter(f => f.m === m && show(f.id)).map(f => `<div class="li">${cardIcon(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
+    const traps = filter === "all" ? C.traps.filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("") : "";
+    const tabs = [{ k: "all", label: "All", n: st.total }].concat(STATES.map(x => ({ k: x.k, label: x.label, n: st[x.k] })));
+    openWin(`<div class="win"><div class="head"><span>M${m} ${esc(M.short)}</span><small>Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</small></div>
       <div class="body"><div class="subtitle">${esc(M.name)}</div>
-        <div class="sect">Key terms</div><div class="list">${terms || "<div class='li'>None</div>"}</div>
+        ${stackBar(st)}
+        <div class="tabs">${tabs.map(t => `<button data-f="${t.k}" class="${t.k === filter ? "on" : ""}" ${t.n || t.k === "all" ? "" : "disabled"}>${t.label} ${t.n}</button>`).join("")}</div>
+        ${terms ? `<div class="sect">Key terms</div><div class="list">${terms}</div>` : ""}
         ${forms ? `<div class="sect">Formulas</div><div class="list">${forms}</div>` : ""}
+        ${!terms && !forms ? `<div class="note">Nothing in this group.</div>` : ""}
         ${traps ? `<div class="sect">Exam traps</div><div class="list">${traps}</div>` : ""}
       </div>
       <div class="foot"><button id="back">Back</button>${remainingIn(m) ? `<button id="focus" class="${isFocus(m) ? "" : "primary"}">${isFocus(m) ? "Stop focusing" : "Focus here"}</button>` : ""}<button id="x">Close</button></div></div>`, root => {
       root.querySelector("#back").onclick = () => { Sfx.tap(); libraryWin(); };
+      root.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(m, b.dataset.f); });
       const fb = root.querySelector("#focus");
-      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus.equity = isFocus(m) ? null : m; save(); toast(S.focus.equity ? `New concepts will come from M${m} first.` : "Back to the normal order."); moduleWin(m); };
+      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus.equity = isFocus(m) ? null : m; save(); toast(S.focus.equity ? `New concepts will come from M${m} first.` : "Back to the normal order."); moduleWin(m, filter); };
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
     });
   }
@@ -839,15 +957,34 @@
     });
   }
 
-  function notesWin() {
-    const all = Store.notes(), fresh = all.filter(n => !n.shared);
+  // split notes into batches that each fit in one GitHub link, so nothing gets cut off
+  function noteBatches(notes) {
+    const out = []; let cur = [];
+    notes.forEach(n => {
+      const next = cur.concat([n]);
+      if (cur.length && Reminders.notesIssueUrl(next, { lean: true }).length > 7000) { out.push(cur); cur = [n]; }
+      else cur = next;
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  function notesWin(resend) {
+    const all = Store.notes();
+    const weekAgo = Date.now() - 7 * 864e5;
+    const pick = resend ? all.filter(n => Date.parse(n.at) >= weekAgo) : all.filter(n => !n.shared);
+    const batches = noteBatches(pick);
+    const links = batches.map((b, i) => `<a class="btnlink sendlink" data-i="${i}" href="${Reminders.notesIssueUrl(b, { part: batches.length > 1 ? (i + 1) + "/" + batches.length : "" })}" target="_blank" rel="noopener">${batches.length > 1 ? `Send part ${i + 1} of ${batches.length}` : `Send ${b.length} note${b.length > 1 ? "s" : ""}`} to GitHub</a>`).join("");
     openWin(`<div class="win"><div class="head"><span>Notes for Claude</span><small>${all.length} total</small></div>
-      <div class="body">${fresh.length ? `<p>${fresh.length} new note${fresh.length > 1 ? "s" : ""}. Tap the button, then <b>Submit new issue</b> on GitHub, and Claude will read them at your next review.</p>
-        <a id="sendlink" class="btnlink" href="${Reminders.notesIssueUrl(fresh)}" target="_blank" rel="noopener">Send ${fresh.length} note${fresh.length > 1 ? "s" : ""} to GitHub</a>` : `<p>No new notes. Tap 📝 at the top any time to add one.</p>`}
+      <div class="body">${pick.length ? `<p>${pick.length} ${resend ? "note" + (pick.length > 1 ? "s" : "") + " from the last 7 days" : "new note" + (pick.length > 1 ? "s" : "")}. Tap ${batches.length > 1 ? "each button" : "the button"}, then <b>Submit new issue</b> on GitHub.</p>${links}` : `<p>No new notes. Tap 📝 at the top any time to add one.</p>`}
+        ${resend ? "" : `<button id="resend" class="wide">Resend notes from the last 7 days</button>`}
         <div class="list">${all.slice().reverse().slice(0, 12).map(n => `<div class="li"><b>${esc(n.kind)}</b> · ${esc(n.text)}${n.shared ? " <span class='tag'>sent</span>" : ""}</div>`).join("")}</div></div>
       <div class="foot"><button id="x" class="primary">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
-      const a = root.querySelector("#sendlink"); if (a) a.addEventListener("click", () => { Store.markShared(fresh.map(n => n.id)); setTimeout(notesWin, 500); });
+      const rs = root.querySelector("#resend"); if (rs) rs.onclick = () => { Sfx.tap(); notesWin(true); };
+      root.querySelectorAll(".sendlink").forEach(a => a.addEventListener("click", () => {
+        Store.markShared(batches[+a.dataset.i].map(n => n.id));
+        a.classList.add("sent"); a.textContent = "✓ Opened. Submit it on GitHub";
+      }));
     });
   }
 
@@ -944,7 +1081,7 @@
     if (hasGear("open-vault")) { interest = Math.min(5000, Math.round(S.cash * 0.02)); S.cash += interest; save(); hud(); }
     openWin(`<div class="win"><div class="head"><span>Morning report</span><small>${dl > 0 ? "D-" + dl : ""}</small></div>
       <div class="body"><div class="vault"><img src="${Sprites.url(tt.due ? "locked-vault" : "open-vault", 2)}" alt=""><div>${tt.due ? `Clear today's ${tt.due} review${tt.due > 1 ? "s" : ""} to open the vault.` : "Vault open. No reviews due!"}</div></div>
-        <div class="kv"><span>Reviews due</span><span style="color:var(--red)">${tt.due}</span><span>New concepts waiting</span><span>${nl}</span><span>Pitch Day</span><span>${pitchesLeft() ? "Ready" : "Done"}</span><span>AUM</span><span>${money(S.aum)}</span>${interest ? `<span>Vault interest</span><span>+${money(interest)}</span>` : ""}</div>
+        <div class="kv"><span>Reviews due</span><span style="color:var(--red)">${tt.due}</span><span>New concepts waiting</span><span>${nl}</span>${studyCount() ? `<span>📖 Need to study</span><span>${studyCount()}</span>` : ""}<span>Pitch Day</span><span>${pitchesLeft() ? "Ready" : "Done"}</span><span>AUM</span><span>${money(S.aum)}</span>${interest ? `<span>Vault interest</span><span>+${money(interest)}</span>` : ""}</div>
         ${sleepy.length ? `<div class="note" style="color:var(--red)">😴 The ${esc(sleepy.join(", "))} desk is sleepy. Clear its reviews to wake it up.</div>` : `<div class="note">Everyone is sharp today.</div>`}
       </div>
       <div class="foot"><button id="x" class="primary">Let's go</button></div></div>`, root => {
@@ -963,7 +1100,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), daysLeft: daysLeft(), build: "2026-10-25a" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), daysLeft: daysLeft(), build: "2026-10-26a" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);

@@ -57,16 +57,20 @@ window.Reminders = (function () {
     return `${REPO}/issues/new?title=${encodeURIComponent("[reminder] phone")}&body=${encodeURIComponent(body)}`;
   }
 
-  function notesIssueUrl(notes) {
+  function notesIssueUrl(notes, opt = {}) {
     const lines = notes.map((n, i) => {
       const q = n.screen && n.screen.question;
       return `### ${i + 1}. ${n.kind}: ${n.text}\n- When: ${n.at}\n- Screen: ${n.screen ? n.screen.window : ""}` +
         (n.pointed ? `\n- Pointing at: ${n.pointed.label}` : "") +
         (q ? `\n- Question (${q.kind}, ${q.itemId}): ${q.prompt}\n- Options: ${q.options.join(" | ")}\n- Correct: ${q.answer}` : "");
     }).join("\n\n");
-    let body = "Notes from the game for Claude to review.\n\n" + lines + "\n\n<details><summary>Raw</summary>\n\n```json\n" + JSON.stringify(notes) + "\n```\n</details>";
-    if (body.length > 6500) body = "Notes from the game for Claude to review.\n\n" + lines.slice(0, 6200) + "\n\n(trimmed)";
-    return `${REPO}/issues/new?title=${encodeURIComponent("[notes] " + new Date().toISOString().slice(0, 10))}&body=${encodeURIComponent(body)}`;
+    const title = encodeURIComponent("[notes] " + new Date().toISOString().slice(0, 10) + (opt.part ? " part " + opt.part : ""));
+    const make = body => `${REPO}/issues/new?title=${title}&body=${encodeURIComponent(body)}`;
+    const head = "Notes from the game for Claude to review.\n\n";
+    let url = make(head + lines + "\n\n<details><summary>Raw</summary>\n\n```json\n" + JSON.stringify(notes) + "\n```\n</details>");
+    if (opt.lean || url.length > 7500) url = make(head + lines);                    // drop the raw copy before cutting anything
+    if (url.length > 7500) url = make(head + lines.slice(0, 2500) + "\n\n(cut: note too long)");
+    return url;
   }
 
   return { init, writeSummary, status, enable, test, reminderIssueUrl, notesIssueUrl, installed, isIOS, get ready() { return !!reg; } };

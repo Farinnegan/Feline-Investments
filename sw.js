@@ -1,7 +1,7 @@
 // Service worker: works offline once opened, and shows daily study reminders.
 // The reminder text is written here from the game's own saved summary, so it
 // can say how many reviews are actually due today.
-const CACHE = "fi-app-v4";
+const CACHE = "fi-app-v5";
 const SHELL = [
   "./", "index.html", "css/style.css", "manifest.webmanifest",
   "js/content.js", "js/store.js", "js/audio.js", "js/sprites.js", "js/scene.js", "js/feedback.js", "js/reminders.js", "js/game.js",
