@@ -558,7 +558,9 @@
   }
   // ---------- Need to study ledger ----------
   function addStudy(id, entry) { S.study[id] = Object.assign({ day: today(), at: Date.now() }, entry); }
-  const studyCount = () => Object.keys(S.study).length;
+  // concepts dropped from a study file keep their saved history but stay out of sight
+  const liveStudy = () => Object.keys(S.study).filter(id => ITEMS[id] || qById(id));
+  const studyCount = () => liveStudy().length;
   const studiedNote = () => `<div class="result study"><div class="title">Added to Need to study</div>
     <div class="why">No guessing, no penalty. Look it up in your book, then open <b>Library, Need to study</b> and tap <b>Studied it</b>. It stays out of your client calls until then.</div></div>`;
   function markStudied(id) {
@@ -888,10 +890,10 @@
     }).join("");
   }
   function studyList() {
-    const ids = Object.keys(S.study).sort((a, b) => (S.study[b].at || 0) - (S.study[a].at || 0));
+    const ids = liveStudy().sort((a, b) => (S.study[b].at || 0) - (S.study[a].at || 0));
     if (!ids.length) return `<div class="note">Nothing here. When a question stumps you, tap <b>📖 I don't know</b> and it lands here for real-life study.</div>`;
     return `<div class="list">${ids.map(id => {
-      const e = S.study[id], tp = e.tp || (ITEMS[id] && ITEMS[id].topic) || (qById(id) && qById(id).tp) || "equity", M = mod(mkey(tp, e.m));
+      const e = S.study[id], tp = e.tp || (ITEMS[id] && ITEMS[id].topic) || (qById(id) && qById(id).tp) || "equity", M = ITEMS[id] ? mod(ITEMS[id].mk) : mod(mkey(tp, e.m));
       const asked = e.kind === "pitch" ? "Pitch Day question" : (e.label || "Client call");
       return `<div class="li studyitem"><div class="sq">${esc(asked)} · added ${e.day === today() ? "today" : (today() - e.day) + "d ago"}</div>
         <div class="sp">${esc(e.prompt)}</div>
@@ -1194,7 +1196,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26c" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26d" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);

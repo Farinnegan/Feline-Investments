@@ -9,22 +9,18 @@ How to use it: read the module sections to review concepts, drill the formula sh
 ## Module 1 — Market Organization and Structure
 
 ### Key terms
-- **Financial system functions**: help people achieve purposes in using the system, discover rates of return that equate savings and borrowing, and allocate capital to its best uses. The six uses: save, borrow, raise equity, manage risk, exchange assets, trade on information.
 - **Bid**: highest price a buyer will pay. **Offer / ask**: lowest price a seller will accept. **Spread** = offer − bid (narrow spread = liquid).
 - **Takes the market**: an order priced to execute immediately against the best quote. **Makes a new market**: an order posted inside the spread that becomes the new best bid/offer. **Makes the market**: an order at the existing best quote. **Behind the market**: an order priced worse than the best quote; it waits.
 - **Market structures**: quote-driven (dealer) markets trade against dealer inventory; order-driven markets match orders by rules; brokered markets use a broker to find a counterparty for large/illiquid/unique positions.
-- **Intermediaries**: broker (agent, finds counterparty, earns commission); dealer (principal, supplies liquidity from inventory, earns spread); investment bank (helps issue new securities); securitizer (pools assets and issues claims backed by the pool); plus exchanges, alternative trading systems, clearinghouses, custodians, depositories, arbitrageurs.
+- **Intermediaries**: broker (agent, finds counterparty, earns commission); dealer (principal, supplies liquidity from inventory, earns spread); investment bank (helps issue new securities); securitizer (pools assets and issues claims backed by the pool).
 - **Long position**: owns the asset; loss capped at the purchase price, upside unlimited. **Short position**: borrows and sells the security, later buys it back to return it; maximum gain capped (price can only fall to zero), maximum loss theoretically unlimited.
 - **Margin / leverage**: buying with borrowed money. Initial margin = equity % put up to open. Maintenance margin = minimum equity % that must be kept; falling below triggers a margin call.
-- **Order instructions** (open item, low mock yield but tested conceptually): execution (market, limit, stop), validity (day, good-till-cancelled, immediate-or-cancel), clearing. Market order = certainty of execution, not price; limit order = certainty of price, not execution.
 
 ### Formulas
 - Spread = best offer − best bid; best bid = best offer − spread
 - Leverage ratio = position value / equity
 - Maximum leverage = 1 / minimum margin requirement
-- Levered return = (ending share value − loan repaid − interest + dividends − commissions) / initial equity
 - Margin call price (long) = P0 × (1 − initial margin) / (1 − maintenance margin)
-- Margin call price (short, bonus) = P0 × (1 + initial margin) / (1 + maintenance margin)
 
 ### Exam traps
 - Given the offer and the spread, the bid is offer **minus** spread. Never add the spread to the offer.
@@ -40,10 +36,9 @@ How to use it: read the module sections to review concepts, drill the formula sh
 ### Key terms
 - **Security market index**: a number representing a market, segment, or asset class; built as a portfolio of constituent securities and valued regularly from their prices.
 - **Price return index** vs **total return index**: price return counts only prices; total return counts prices plus reinvested income (dividends/interest). Equal at inception; total return exceeds price return thereafter.
-- **Divisor**: a number chosen at inception to set a convenient starting value; adjusted for splits and constituent changes so mechanical changes do not alter the index level.
 - **Weighting methods**: price-weighted (like the Dow), equal-weighted (like S&P 500 Equal Weight), market-cap weighted (like the S&P 500), float-adjusted market-cap weighted (the real S&P method, counts only publicly tradable shares).
 - **Rebalancing**: resetting weights back to target, mainly needed for equal-weighted indexes; cap-weighted indexes are largely self-adjusting. **Reconstitution**: changing the index membership; triggers a rebalance and keeps the index representative.
-- **Index types**: broad market, multi-market (multiple countries), sector, style (size and value/growth). Fixed-income indexes are harder to build (bonds mature, there are more of them, they trade infrequently). Alternative indexes: commodity (futures-based, arbitrary weighting), real estate (REIT or appraisal), hedge fund (suffer survivorship and backfill/self-selection bias, which overstate returns).
+- **Equity index types**: broad market, multi-market (multiple countries), sector, style (size and value/growth).
 
 ### Formulas
 - Price return index value = Σ(nᵢ × Pᵢ) / Divisor
@@ -69,9 +64,8 @@ How to use it: read the module sections to review concepts, drill the formula sh
 - **Market value vs intrinsic value**: inefficiency is the gap between the two; only that gap can be profited from.
 - **Three forms**: weak form (prices reflect all past price/volume data → technical analysis cannot earn abnormal returns); semi-strong form (prices reflect all public information → public-information fundamental analysis cannot earn abnormal returns without a comparative advantage); strong form (prices reflect public and private information → even insiders cannot profit). Markets are generally weak and semi-strong efficient, not strong-form efficient (insider-trading laws are the proof).
 - **Factors affecting efficiency**: more market participants/analysts, cheaper and wider information, and easier/cheaper trading raise efficiency; short-sale restrictions, transaction costs, and limits to arbitrage lower it.
-- **Anomalies**: apparent inefficiencies. Cross-sectional: size effect (small-caps outperform risk-adjusted), value effect (low P/E, low P/B, high yield outperform). Time-series: January/turn-of-the-year effect, momentum, overreaction. Other: closed-end fund discount, IPO underpricing.
+- **Anomalies**: apparent inefficiencies. The two cross-sectional ones that are tested: size effect (small-caps outperform risk-adjusted) and value effect (low P/E, low P/B, high yield outperform).
 - **Data mining / snooping**: testing many strategies guarantees some look profitable by chance; a discovered pattern is a candidate anomaly needing validation, not proof of inefficiency.
-- **Behavioral finance**: explains anomalies through psychology; key biases are loss aversion, overconfidence (drives excessive trading), herding, anchoring.
 
 ### Exam traps
 - An observed anomaly is not automatic proof of an exploitable inefficiency (model error, data mining, transaction costs, disappearing effects).
@@ -85,13 +79,7 @@ How to use it: read the module sections to review concepts, drill the formula sh
 ### Key terms
 - **Debt vs equity**: debt is a contractual obligation; equity is a residual claim with no obligation to pay dividends.
 - **Common shares**: ownership with voting rights, residual claim, and discretionary dividends.
-- **Voting**: statutory (one share, one vote per candidate) vs cumulative (concentrate all votes on one candidate; protects minority shareholders). Dual-class structures (e.g., Viacom, Ford) separate voting power from economic ownership.
 - **Preference shares**: rank above common for dividends and liquidation, usually no vote, fixed dividend that is not a contractual obligation. Feature switches: cumulative vs non-cumulative (skipped dividends accrue or are forfeited); participating vs non-participating (share extra profits/liquidation or not; participating is common for small, risky firms); convertible (convert to common; popular in VC/PE for risky, unseasoned firms); callable (issuer redeems, riskier to investor) vs putable (investor sells back, less risky to investor).
-- **Public vs private equity**: private equity (venture capital, leveraged buyout, private investment in public equity) is illiquid, less disclosed, longer-horizon.
-- **Depository receipts**: certificates trading locally that represent foreign shares (ADR, GDR). Sponsored (company cooperation, voting rights) vs unsponsored (bank-created, usually no vote).
-- **Risk/return**: equity riskier than debt; preferred less risky than common.
-- **Company value**: book value = assets − liabilities (accounting, backward-looking); market value = traded value (forward-looking expectations). Cost of equity = investors' required rate of return = minimum return to satisfy shareholders and the rate to discount cash flows. A company creates value when accounting ROE exceeds its cost of equity, pushing market value above book value.
-
 ### Exam traps
 - A question may give two valid reasons a company issues equity and make "both" the answer; do not stop at the first true statement.
 - Keep preference-share features in their lanes; convertible = exchangeable into common, cumulative = unpaid dividends accrue, putable = investor's sell-back option.
@@ -114,24 +102,10 @@ How to use it: read the module sections to review concepts, drill the formula sh
 ### Key terms
 - **Industry classification systems**: commercial systems (GICS, ICB, Refinitiv Business Classification) are global, product/service based, updated regularly; government systems (SIC, NAICS, ISIC) are production based, country specific, updated infrequently. Both types exist.
 - **Limitation of hierarchical schemes**: a diversified company is assigned to a single principal group even when it operates in several industries.
-- **Cyclical vs non-cyclical (defensive)**: cyclical demand swings with the economy (autos, airlines, luxury); defensive demand is stable (utilities, food, healthcare).
-- **Porter's five forces**: rivalry, threat of new entrants (barriers to entry), threat of substitutes, supplier power, buyer power. They determine industry profitability and pricing power.
-- **Industry life cycle**: embryonic, growth, shakeout, mature, decline.
-- **External influences**: macroeconomic, demographic, governmental/regulatory, social, technological.
 
 ### Exam traps
 - Industry classification systems are developed by both government agencies and commercial entities.
 - The hierarchical limitation is the one-group assignment, not lack of coverage or updating.
-
----
-
-## Module 7 — Company Analysis: Forecasting (lowest mock yield; no bank questions)
-
-### Key terms
-- **Top-down forecasting**: economy → industry → company share. **Bottom-up**: build from company units (units × price, stores × sales per store, subscribers × revenue per subscriber). **Hybrid**: both, cross-checked.
-- **Growth relative to GDP** vs **market growth and share** as top-down approaches.
-- **Operating leverage**: the more fixed costs, the more profit swings with revenue.
-- **Handling uncertainty**: scenario analysis (distinct futures) and sensitivity analysis (one input at a time).
 
 ---
 
@@ -141,9 +115,7 @@ How to use it: read the module sections to review concepts, drill the formula sh
 - **Intrinsic (fundamental) value vs market price**: intrinsic value above price = undervalued (buy); below = overvalued; approximately equal = fairly valued. Compare market price to intrinsic value. Confidence in the model and inputs matters.
 - **Three model families**: present value / discounted cash flow (dividend discount model, free-cash-flow-to-equity; most rigorous, input-sensitive); multiples / market (relative valuation; simple but comparability is the weakness); asset-based (assets − liabilities; good for asset-heavy firms and liquidation, weak for intangible-heavy going concerns).
 - **Dividends and distributions**: regular cash dividend, extra/special dividend, stock dividend, stock split, reverse split, share repurchase. Stock dividends and splits leave total value and proportional ownership unchanged; a repurchase reduces shares outstanding.
-- **Dividend chronology**: declaration date → ex-dividend date (the cutoff; buy before it to receive the dividend) → holder-of-record date → payment date. Price drops by roughly the dividend on the ex-date.
 - **Price multiples**: P/E (most common; trailing vs forward), P/B, P/S (useful when earnings are negative), P/CF (harder to manipulate than earnings). Valued by comparables.
-- **Enterprise value multiples**: EV = market value of equity + market value of debt − cash. EV/EBITDA is capital-structure neutral and common in M&A.
 - **Model selection** is the tested skill: match the model to the cash flows the question gives.
 
 ### Formulas
@@ -151,11 +123,8 @@ How to use it: read the module sections to review concepts, drill the formula sh
 - Term / retractable preferred: V = PV of dividends to the date + PV of redemption/retraction price. Match timing units: quarterly dividend, quarterly required return, periods in quarters.
 - Finite-horizon DDM: V₀ = Σ [Dₜ / (1 + r)ᵗ] + P_N / (1 + r)^N, with each Dₜ grown from D₀
 - Gordon (constant) growth: V₀ = D₁ / (r − g), where D₁ = D₀(1 + g); requires g < r
-- Two-stage DDM: PV of each high-growth dividend + PV of a terminal value, where terminal value = D_(n+1) / (r − g) computed at the end of the high-growth phase
 - Sustainable growth: g = retention × ROE; retention b = 1 − payout; ROE = ROA × leverage
 - Justified forward P/E = payout / (r − g)
-- Justified trailing P/E = payout × (1 + g) / (r − g)
-- Enterprise value = market cap + total debt − cash
 
 ### Exam traps
 - The mock tests model selection as much as arithmetic; most wrong answers apply a familiar model that does not fit the cash flows.
@@ -174,7 +143,6 @@ How to use it: read the module sections to review concepts, drill the formula sh
 | Spread | best offer − best bid |
 | Max leverage | 1 / minimum margin |
 | Margin call price (long) | P0 × (1 − IM) / (1 − MM) |
-| Levered return | (end value − loan − interest + dividends − commissions) / initial equity |
 | Index price return | (V₁ − V₀) / V₀ |
 | Index total return | (V₁ − V₀ + income) / V₀ |
 | Multi-period value | V₀ (1+r₁)(1+r₂)…(1+r_T) |
@@ -188,8 +156,6 @@ How to use it: read the module sections to review concepts, drill the formula sh
 | Gordon growth | D₁ / (r − g), D₁ = D₀(1+g) |
 | Sustainable growth | (1 − payout) × ROE; ROE = ROA × leverage |
 | Justified forward P/E | payout / (r − g) |
-| Justified trailing P/E | payout × (1+g) / (r − g) |
-| Enterprise value | market cap + debt − cash |
 
 ---
 
@@ -310,4 +276,4 @@ How to use it: read the module sections to review concepts, drill the formula sh
 
 ---
 
-*Scope: CFA Level I Equity, Modules 1–8. Questions are mock-style, matched to the topics the official mock emphasizes (Modules 1, 2, 3, 4, and 8 carry the tested load; Module 5 is the bank exception; Modules 6 and 7 are lightly tested). Confirm any rate, threshold, or figure against the current CFA curriculum before relying on it.*
+*Scope: CFA Level I Equity, Modules 1–8. Questions are mock-style, matched to the topics the official mock emphasizes (Modules 1, 2, 3, 4, and 8 carry the tested load; Module 5 is the bank exception; Module 6 is lightly tested). Confirm any rate, threshold, or figure against the current CFA curriculum before relying on it.*
