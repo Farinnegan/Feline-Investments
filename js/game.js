@@ -622,7 +622,7 @@
       return VARIANTS.map(v => {
         const c = candidate(t.id, v);
         const hired = S.staff.some(s => s.topic === t.id && s.v === v);
-        const cost = seat === 0 ? 0 : hireCost(c, seat);                      // the first analyst on each desk is on the house
+        const cost = !S.staff.length ? 0 : hireCost(c, seat);                // only the very first hire of a new game is free
         const can = !hired && seat < openSeats(t.id) && S.staff.length < cap && S.cash >= cost;
         return { c, hired, cost, can, seat };
       });
@@ -1145,7 +1145,7 @@
         <p><b>Clients bring deals.</b> Each deal is a term or formula from your CFA notes, sent to the desk for that topic. Answer right to close it and earn fees.</p>
         <p><b>Your memory runs the firm.</b> Concepts you get right come back after 1, 2, 4, 7 and 12 days, never later than exam day. Miss one and it comes back after a few other calls, asked the other way round.</p>
         <p><b>Don't let the desk get sleepy.</b> Any overdue concept halves that desk's fees until you review it. Three right in a row sets it on fire 🔥.</p>
-        <p><b>Grow the team.</b> Each CFA topic has its own desk, and the first analyst on a desk is free. New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
+        <p><b>Grow the team.</b> Each CFA topic has its own desk. New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
         <p><b>Pitch Day.</b> Pitch 5 exam-style questions from your staffed desks to a big client, as often as you like. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear.</p>
         <p><b>Level up.</b> Every right answer earns XP, with bonuses for reviews, masteries, Pitch Day wins and tombstones. Each level adds +3% to fees, and offices unlock at levels 4, 9 and 15.</p>
         <p><b>Spot something off?</b> Tap 📝 to leave Claude a note.</p>
@@ -1219,7 +1219,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26e" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26f" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);
