@@ -62,6 +62,7 @@ window.Reminders = (function () {
       const q = n.screen && n.screen.question;
       return `### ${i + 1}. ${n.kind}: ${n.text}\n- When: ${n.at}\n- Screen: ${n.screen ? n.screen.window : ""}` +
         (n.pointed ? `\n- Pointing at: ${n.pointed.label}` : "") +
+        (n.screen && n.screen.layout ? `\n- Layout: scene ${n.screen.layout.scene.join("x")}, viewport ${n.screen.layout.viewport.join("x")}, zoom ${n.screen.layout.zoom}, ${n.screen.standalone ? "home-screen app" : "browser"}` : "") +
         (q ? `\n- Question (${q.kind}, ${q.itemId}): ${q.prompt}\n- Options: ${q.options.join(" | ")}\n- Correct: ${q.answer}` : "");
     }).join("\n\n");
     const title = encodeURIComponent("[notes] " + new Date().toISOString().slice(0, 10) + (opt.part ? " part " + opt.part : ""));

@@ -13,11 +13,18 @@
   const RELEARN_GAP = 5;                 // a missed concept waits at least this many calls before coming back
   const MAX_SHAKY = 8;                   // no daily cap: new concepts keep coming while fewer than this many misses wait for a retest
   const OFFICES = [
-    { cap: 3,  mastered: 0,  tombs: 0,  cost: 0 },
-    { cap: 6,  mastered: 20, tombs: 5,  cost: 20000 },
-    { cap: 10, mastered: 50, tombs: 15, cost: 60000 },
-    { cap: 16, mastered: 90, tombs: 30, cost: 150000 }
+    { cap: 3,  level: 1,  cost: 0 },
+    { cap: 6,  level: 4,  cost: 20000 },
+    { cap: 10, level: 9,  cost: 60000 },
+    { cap: 16, level: 15, cost: 150000 }
   ];
+  // ---------- firm XP and levels (1 to 20) ----------
+  const MAX_LEVEL = 20;
+  const XP = { call: 10, review: 15, practice: 4, mastery: 40, pitch: 30, tombstone: 100 };
+  const LEVEL_FEE = 0.03;                                   // +3% fees per level above 1
+  // XP needed to reach each level (cumulative): grows about 22% per level
+  const LEVEL_XP = [0, 0];
+  for (let L = 2; L <= MAX_LEVEL; L++) LEVEL_XP[L] = LEVEL_XP[L - 1] + Math.round(150 * Math.pow(1.22, L - 2) / 10) * 10;
   const SEAT_UNLOCK = [0, 0.3, 0.6];     // share of a topic's concepts introduced before seat 2 / 3 opens
   const BASE_FEE = { term: 500, rterm: 600, formula: 800, rformula: 700 };
   const AUM_PER_FEE = 40;
@@ -116,7 +123,8 @@
       newDay: today(), newCount: {}, newCap: 12,
       lastDay: null, muted: false,
       pitch: { day: null, runs: 0, q: {}, tombs: [] },
-      study: {}                                                       // Need to study ledger: id -> entry
+      study: {},                                                      // Need to study ledger: id -> entry
+      xp: 0, level: 1
     };
   }
   // Saves are upgraded in place, never wiped: new fields get defaults, old progress stays.
@@ -126,6 +134,14 @@
     const S = Object.assign(freshState(), old);
     S.pitch = Object.assign({ day: null, runs: 0, q: {}, tombs: [] }, old.pitch || {});
     if (!S.study || typeof S.study !== "object") S.study = {};
+    if (typeof old.xp !== "number") {                     // one-time XP for progress made before levels existed
+      let xp = 0;
+      Object.values(S.items).forEach(it => { xp += (it.ok || 0) * XP.call; if ((it.b || 0) >= 2) xp += XP.mastery; });
+      Object.values(S.pitch.q || {}).forEach(q => { xp += (q.okDays || []).length * XP.pitch; });
+      xp += (S.pitch.tombs || []).length * XP.tombstone;
+      S.xp = xp;
+    }
+    S.level = levelFor(S.xp);
     ["items", "streak", "rr", "newCount"].forEach(k => { if (!S[k] || typeof S[k] !== "object") S[k] = {}; });
     if (!Array.isArray(S.staff)) S.staff = [];
     if (!Array.isArray(S.recent)) S.recent = [];
@@ -162,6 +178,26 @@
   function rollDay() { const d = today(); if (S.newDay !== d) { S.newDay = d; S.newCount = {}; } }
   function daysLeft() { return EXAM_DAY - today(); }
   const tombCount = () => S.pitch.tombs.length;
+  function levelFor(xp) { let L = 1; while (L < MAX_LEVEL && xp >= LEVEL_XP[L + 1]) L++; return L; }
+  function levelProgress() {
+    if (S.level >= MAX_LEVEL) return 1;
+    return (S.xp - LEVEL_XP[S.level]) / (LEVEL_XP[S.level + 1] - LEVEL_XP[S.level]);
+  }
+  // add XP, float it over the office, and celebrate any level-ups
+  function gainXP(n, where) {
+    if (!n) return;
+    S.xp += n;
+    if (where != null) Scene.xpFloat(where, "+" + n + " XP");
+    const before = S.level, now = levelFor(S.xp);
+    if (now > before) {
+      S.level = now;
+      const office = OFFICES.findIndex(o => o.level === now);
+      setTimeout(() => {
+        Sfx.fanfare(); Scene.ceoCheer(); Scene.staffSay(-1, "Level " + now + "!", 1800);
+        toast(`⭐ Firm level ${now}! Fees +${Math.round(LEVEL_FEE * 100)}%.` + (office > 0 ? ` The ${Scene.LAYOUTS[office].name} is unlocked. Open Office.` : ""), "gold");
+      }, 600);
+    }
+  }
   const hasGear = sprite => GEAR.some(g => g.sprite === sprite && tombCount() >= g.tombs);
 
   // ---------- spaced repetition ----------
@@ -291,6 +327,24 @@
     return out;
   }
 
+  // wrong options: same look-alike group first (including file-named decoys), then same module, then anything
+  function termOptions(t, count) {
+    const decoys = (C.decoyTerms || []).filter(d => d.g === t.g && d.m === t.m).map(d => ({ term: d.term, g: d.g, m: d.m, decoy: true }));
+    const real = pickDistractors(C.terms, t, count, x => x.term);
+    const sameReal = real.filter(x => x.g === t.g);
+    const pool = shuffle(sameReal.concat(decoys));
+    const out = pool.slice(0, count);
+    real.forEach(x => { if (out.length < count && !out.includes(x)) out.push(x); });
+    return out;
+  }
+  function formulaOptions(f, count) {
+    const traps = (C.decoyFormulas || []).filter(d => d.for === f.id).map(d => ({ formula: d.formula, decoy: true }));
+    const real = pickDistractors(C.formulas, f, count, x => x.formula).filter(x => x.formula !== f.formula);
+    const out = shuffle(traps).slice(0, Math.min(2, count));
+    real.forEach(x => { if (out.length < count && !out.some(o => o.formula === x.formula)) out.push(x); });
+    return out;
+  }
+
   function buildDeal(pick) {
     const it = ITEMS[pick.id];
     const s = S.items[pick.id];
@@ -300,7 +354,7 @@
     if (it.kind === "term") {
       const t = it.src;
       const reverse = forced ? forced === "reverse" : box >= 2 && Math.random() < 0.5;
-      const ds = pickDistractors(C.terms, t, reverse ? 2 : 3, x => reverse ? x.def : x.term);
+      const ds = reverse ? pickDistractors(C.terms, t, 2, x => x.def) : termOptions(t, 3);
       const why = "<b>" + esc(t.term) + "</b>: " + esc(t.def);
       if (reverse) return { ...base, reverse, type: "rterm", label: "Define it", ask: "Which definition fits this term?", prompt: "<b>" + esc(t.term) + "</b>", why,
         opts: shuffle([{ text: t.def, right: true }, ...ds.map(x => ({ text: x.def, right: false }))]) };
@@ -309,7 +363,7 @@
     }
     const f = it.src;
     const reverse = forced ? forced === "reverse" : box >= 2 && Math.random() < 0.4;
-    const ds = pickDistractors(C.formulas, f, 3, x => reverse ? x.name : x.formula);
+    const ds = reverse ? pickDistractors(C.formulas, f, 3, x => x.name) : formulaOptions(f, 3);
     const why = "<b>" + esc(f.name) + "</b> = " + esc(f.formula);
     if (reverse) return { ...base, reverse, type: "rformula", label: "Read the formula", ask: "What does this formula calculate?", prompt: "<span class='formula'>" + esc(f.formula) + "</span>", why,
       opts: shuffle([{ text: f.name, right: true }, ...ds.map(x => ({ text: x.name, right: false }))]) };
@@ -319,7 +373,7 @@
 
   function feeFor(deal, boxBefore) {
     const tb = teamBonus(deal.topic);
-    let fee = BASE_FEE[deal.type] * (1 + 0.25 * S.office) * (1 + 0.1 * boxBefore) * (1 + 0.05 * tb.s) * (1 + 0.05 * skillsUnlocked(deal.topic));
+    let fee = BASE_FEE[deal.type] * (1 + 0.25 * S.office) * (1 + LEVEL_FEE * (S.level - 1)) * (1 + 0.1 * boxBefore) * (1 + 0.05 * tb.s) * (1 + 0.05 * skillsUnlocked(deal.topic));
     const mood = moodFor(deal.topic);
     if (mood === "fire") fee *= 1.4 + 0.03 * tb.d;
     if (mood === "sleepy") fee *= 0.5;
@@ -356,11 +410,9 @@
     $("s-mastered").textContent = tt.mastered + "/" + TOTAL_ITEMS;
     $("s-due").textContent = tt.due;
     const next = OFFICES[S.office + 1];
-    if (next) {
-      const pct = Math.min(1, tt.mastered / next.mastered) * 0.5 + Math.min(1, tombCount() / next.tombs) * 0.3 + Math.min(1, S.cash / next.cost) * 0.2;
-      $("s-bar").style.width = (pct * 100) + "%";
-      $("s-next").textContent = `Lv ${S.office + 1} ${Scene.LAYOUTS[S.office].name}  →  ${Scene.LAYOUTS[S.office + 1].name}  ${Math.floor(pct * 100)}%`;
-    } else { $("s-bar").style.width = "100%"; $("s-next").textContent = `Lv ${S.office + 1} ${Scene.LAYOUTS[S.office].name} · Top floor`; }
+    const pct = levelProgress();
+    $("s-bar").style.width = (pct * 100) + "%";
+    $("s-next").textContent = S.level >= MAX_LEVEL ? `Lv ${MAX_LEVEL} · Max level` : `Lv ${S.level} · ${Math.floor(pct * 100)}%`;
     const pl = pitchesLeft();
     $("btn-pitch").classList.toggle("ready", pl > 0);
     $("btn-pitch").classList.toggle("dot", pl > 0);
@@ -464,13 +516,15 @@
       S.cash += fee; S.aum += aum;
       Sfx.register();
       Scene.reward(si, "+" + money(fee));
+      const xp = (deal.mode === "due" ? XP.review : deal.mode === "practice" ? XP.practice : XP.call) + (g.newlyMastered ? XP.mastery : 0);
+      gainXP(xp, si);
       Scene.staffSay(si, CHEERS[Math.floor(Math.random() * CHEERS.length)], 1400);
       const fire = S.streak[deal.topic] === 3 ? `<div class='money'>🔥 The ${esc(topic(deal.topic).name)} desk is on fire! Bigger fees.</div>` : "";
       const s = S.items[deal.id];
       const days = s.due - today();
       const nextDue = deal.mode === "practice" ? "Extra call: schedule unchanged." : `Next review in ${days} day${days > 1 ? "s" : ""}.`;
       html = `<div class="result good"><div class="title">Deal closed</div><div class="why">${deal.why}</div>
-        <div class="money">+${money(fee)} fees · +${money(aum)} AUM · ${nextDue}</div>${fire}</div>`;
+        <div class="money">+${money(fee)} fees · +${money(aum)} AUM · +${xp} XP${g.newlyMastered ? " (mastery bonus)" : ""} · ${nextDue}</div>${fire}</div>`;
       if (g.newlyMastered) setTimeout(() => { Sfx.sting(); toast("★ Mastered: " + esc(nameOf(deal.id)), "gold"); }, 500);
       if (S.streak[deal.topic] === 3) setTimeout(() => Sfx.sting(), 300);
     } else {
@@ -536,7 +590,7 @@
     });
   }
 
-  function officeReady(next) { return totals().mastered >= next.mastered && tombCount() >= next.tombs && S.cash >= next.cost; }
+  function officeReady(next) { return S.level >= next.level && S.cash >= next.cost; }
 
   // ---------- hiring ----------
   function openSeats(tp) {
@@ -693,18 +747,19 @@
         if (right) {
           const aum = pitchAum();
           run.correct++; run.aum += aum; run.cash += 1500; S.aum += aum; S.cash += 1500;
+          let pxp = XP.pitch;
           if (!qs.okDays.includes(d)) qs.okDays.push(d);
           let tombMsg = qs.okDays.length === 1 ? "Get it right on another day to earn its tombstone." : "";
           if (qs.okDays.length >= 2 && !S.pitch.tombs.includes(q.id)) {
             const before = tombCount();
-            S.pitch.tombs.push(q.id); run.tombsNew.push(q.id);
+            S.pitch.tombs.push(q.id); run.tombsNew.push(q.id); pxp += XP.tombstone;
             tombMsg = "🏛 Deal tombstone earned!";
             setTimeout(() => { Sfx.sting(); toast("🏛 Deal tombstone earned! " + tombCount() + "/" + C.questions.length, "gold"); }, 400);
             const g = GEAR.find(g => before < g.tombs && tombCount() >= g.tombs);
             if (g) setTimeout(() => { Sfx.fanfare(); toast("🎁 New gear: " + esc(g.name) + ". " + esc(g.effect), "gold"); }, 1400);
           }
-          Sfx.register(); Scene.ceoCheer();
-          html = `<div class="result good"><div class="title">Mandate won</div><div class="why">${esc(q.why)}</div><div class="money">+${money(aum)} AUM · +$1.5K fees${tombMsg ? " · " + tombMsg : ""}</div></div>`;
+          Sfx.register(); Scene.ceoCheer(); gainXP(pxp, -1); run.xp = (run.xp || 0) + pxp;
+          html = `<div class="result good"><div class="title">Mandate won</div><div class="why">${esc(q.why)}</div><div class="money">+${money(aum)} AUM · +$1.5K fees · +${pxp} XP${tombMsg ? " · " + tombMsg : ""}</div></div>`;
         } else {
           qs.wrongDay = d;
           Sfx.thud();
@@ -726,7 +781,7 @@
     const answered = Math.min(run.i + (document.querySelector("#res .result") ? 1 : 0), run.qs.length) - (run.studied || 0);
     openWin(`<div class="win"><div class="head"><span>Pitch results</span><small>${esc(run.inst.name)}</small></div>
       <div class="body"><div class="pitchhero"><img src="${Sprites.url(run.inst.sprite, 3)}" alt=""><div><b>${run.correct} of ${answered} mandates won</b><span>${run.correct ? "They're impressed." : "They'll be back."}</span></div></div>
-        <div class="kv"><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span>${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}<span>Total tombstones</span><span>${tombCount()}/${C.questions.length}</span></div>
+        <div class="kv"><span>XP earned</span><span>+${run.xp || 0}</span><span>AUM won</span><span>${money(run.aum)}</span><span>Fees</span><span>${money(run.cash)}</span><span>New tombstones</span><span>${run.tombsNew.length}</span>${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}<span>Total tombstones</span><span>${tombCount()}/${C.questions.length}</span></div>
         ${pitchesLeft() ? `<div class="note">You have ${pitchesLeft()} more pitch${pitchesLeft() > 1 ? "es" : ""} today.</div>` : vaultOpen() ? `<div class="note">That's it for today. Next pitch tomorrow.</div>` : `<div class="note">Clear all of today's reviews to open the vault and unlock a bonus pitch.</div>`}
       </div>
       <div class="foot"><button id="x" class="primary">Back to the office</button></div></div>`, root => {
@@ -738,18 +793,16 @@
   // ---------- office ----------
   function officeWin() {
     const cur = Scene.LAYOUTS[S.office], next = OFFICES[S.office + 1], tt = totals();
-    let body = `<div class="kv"><span>Current office</span><span>${cur.name}</span><span>Desks</span><span>${S.staff.length}/${OFFICES[S.office].cap}</span><span>Fee boost</span><span>x${(1 + 0.25 * S.office).toFixed(2)}</span><span>Cash</span><span>${money(S.cash)}</span></div>`;
+    let body = `<div class="kv"><span>Firm level</span><span>${S.level} · ${S.xp} XP</span><span>Current office</span><span>${cur.name}</span><span>Desks</span><span>${S.staff.length}/${OFFICES[S.office].cap}</span><span>Office fee boost</span><span>x${(1 + 0.25 * S.office).toFixed(2)}</span><span>Level fee boost</span><span>+${Math.round(LEVEL_FEE * 100 * (S.level - 1))}%</span><span>Cash</span><span>${money(S.cash)}</span></div>`;
     let btn = "";
     if (next) {
-      const okM = tt.mastered >= next.mastered, okT = tombCount() >= next.tombs, okC = S.cash >= next.cost;
+      const okL = S.level >= next.level, okC = S.cash >= next.cost;
       body += `<div class="sect">Next: ${Scene.LAYOUTS[S.office + 1].name}</div>
-        <div class="kv"><span>Concepts mastered</span><span style="color:${okM ? "var(--green)" : "var(--red)"}">${tt.mastered}/${next.mastered}</span>
-        <span>Deal tombstones</span><span style="color:${okT ? "var(--green)" : "var(--red)"}">${tombCount()}/${next.tombs}</span>
+        <div class="kv"><span>Firm level</span><span style="color:${okL ? "var(--green)" : "var(--red)"}">${S.level} / ${next.level}</span>
         <span>Moving cost</span><span style="color:${okC ? "var(--green)" : "var(--red)"}">${money(next.cost)}</span>
         <span>Desks</span><span>${next.cap}</span><span>Fee boost</span><span>x${(1 + 0.25 * (S.office + 1)).toFixed(2)}</span></div>
-        <div class="note">The progress bar on the office screen blends these three: mastered concepts count most, then tombstones, then cash.</div>
-        <div class="note">Mastered means right again at a later day's review. Tombstones come from Pitch Day. Bigger offices hold more analysts once you add more topics.</div>`;
-      btn = `<button id="mv" class="primary" ${okM && okT && okC ? "" : "disabled"}>Move in</button>`;
+        <div class="note">Every right answer earns XP: client calls ${XP.call}, reviews ${XP.review}, extra calls ${XP.practice}, Pitch Day wins ${XP.pitch}. Bonuses: +${XP.mastery} for each new mastery, +${XP.tombstone} for each tombstone. Each level adds +${Math.round(LEVEL_FEE * 100)}% to fees.</div>`;
+      btn = `<button id="mv" class="primary" ${okL && okC ? "" : "disabled"}>Move in</button>`;
     } else body += `<div class="note">You run the whole tower.</div>`;
     openWin(`<div class="win"><div class="head"><span>Office</span></div><div class="body">${body}</div>
       <div class="foot"><button id="x">Close</button>${btn}</div></div>`, root => {
@@ -890,7 +943,7 @@
     Sfx.tap();
     openWin(`<div class="win"><div class="head"><span>CEO's office</span><small>${esc(S.firm)}</small></div>
       <div class="body"><div class="trophies">${["bronze-laurel-trophy", "silver-laurel-trophy", "gold-laurel-trophy", "crystal-championship-trophy"].map((n, i) => `<img src="${Sprites.url(n, 2)}" class="${i <= S.office ? "" : "dimmed"}" alt="">`).join("")}</div>
-        <div class="kv"><span>Office</span><span>${Scene.LAYOUTS[S.office].name}</span>
+        <div class="kv"><span>Firm level</span><span>${S.level} (${S.xp} XP)</span><span>Office</span><span>${Scene.LAYOUTS[S.office].name}</span>
         <span>AUM</span><span>${money(S.aum)}</span><span>Cash</span><span>${money(S.cash)}</span>
         <span>Deals closed</span><span>${S.deals}</span><span>Staff</span><span>${S.staff.length}</span>
         <span>Concepts seen</span><span>${tt.intro}/${TOTAL_ITEMS}</span><span>Mastered</span><span>${tt.mastered}</span>
@@ -1028,7 +1081,7 @@
         <p><b>Don't let the desk get sleepy.</b> Any overdue concept halves that desk's fees until you review it. Three right in a row sets it on fire 🔥.</p>
         <p><b>Grow the team.</b> New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
         <p><b>Pitch Day.</b> Once a day, pitch 5 exam-style questions to a big client. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear. Clear all your reviews to unlock a bonus pitch.</p>
-        <p><b>Move up.</b> Mastered concepts, tombstones and cash unlock bigger offices.</p>
+        <p><b>Level up.</b> Every right answer earns XP, with bonuses for reviews, masteries, Pitch Day wins and tombstones. Each level adds +3% to fees, and offices unlock at levels 4, 9 and 15.</p>
         <p><b>Spot something off?</b> Tap 📝 to leave Claude a note.</p>
         <p><b>Reminders.</b> Add the game to your home screen, then turn on Menu, Phone reminders.</p>
       </div>
@@ -1100,7 +1153,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), daysLeft: daysLeft(), build: "2026-10-26a" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26b" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);

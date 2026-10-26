@@ -61,11 +61,11 @@ window.CONTENT = {
     { id: "t52", m: 3, g: "form", term: "Weak form efficiency", def: "Prices reflect all past price and volume data, so technical analysis cannot earn abnormal returns." },
     { id: "t53", m: 3, g: "form", term: "Semi-strong form efficiency", def: "Prices reflect all public information, so public-information fundamental analysis cannot earn abnormal returns without a comparative advantage." },
     { id: "t54", m: 3, g: "form", term: "Strong form efficiency", def: "Prices reflect public and private information, so even insiders cannot profit." },
-    { id: "t55", m: 3, g: "anomaly", term: "Size effect", def: "Small-cap shares outperform on a risk-adjusted basis." },
-    { id: "t56", m: 3, g: "anomaly", term: "Value effect", def: "Low P/E, low P/B and high-yield shares outperform." },
+    { id: "t55", m: 3, g: "effect", term: "Size effect", def: "Small-cap shares outperform on a risk-adjusted basis." },
+    { id: "t56", m: 3, g: "effect", term: "Value effect", def: "Low P/E, low P/B and high-yield shares outperform." },
     { id: "t57", m: 3, g: "anomaly", term: "Data mining / snooping", def: "Testing many strategies guarantees some look profitable by chance; a discovered pattern is a candidate anomaly needing validation." },
     { id: "t58", m: 3, g: "anomaly", term: "Behavioral finance", def: "Explains anomalies through psychology; key biases are loss aversion, overconfidence, herding and anchoring." },
-    { id: "t59", m: 3, g: "anomaly", term: "Overconfidence", def: "A behavioral bias that drives excessive trading." },
+    { id: "t59", m: 3, g: "bias", term: "Overconfidence", def: "A behavioral bias that drives excessive trading." },
 
     // ---------- Module 4 ----------
     { id: "t70", m: 4, g: "claim", term: "Debt", def: "A contractual obligation." },
@@ -127,6 +127,29 @@ window.CONTENT = {
     { id: "t141", m: 8, g: "mult", term: "P/E ratio", def: "The most common price multiple; comes in trailing and forward versions." },
     { id: "t142", m: 8, g: "mult", term: "EV/EBITDA", def: "Capital-structure neutral and common in M&A." },
     { id: "t143", m: 8, g: "model", term: "Model selection", def: "The tested skill: match the model to the cash flows the question gives." }
+  ],
+
+  // Wrong-option names only. Each is named in the file but not defined there, so it is
+  // never asked about, only offered as a look-alike choice.
+  decoyTerms: [
+    { m: 3, g: "bias", term: "Loss aversion" },
+    { m: 3, g: "bias", term: "Herding" },
+    { m: 3, g: "bias", term: "Anchoring" },
+    { m: 3, g: "effect", term: "January effect" },
+    { m: 3, g: "effect", term: "Momentum" },
+    { m: 3, g: "effect", term: "Overreaction" },
+    { m: 3, g: "effect", term: "Closed-end fund discount" },
+    { m: 3, g: "effect", term: "IPO underpricing" }
+  ],
+
+  // Wrong-formula options taken from the file's exam traps (the mistakes it warns about).
+  decoyFormulas: [
+    { for: "f2",  formula: "Best offer + spread" },                       // "Never add the spread to the offer"
+    { for: "f4",  formula: "1 / (1 − minimum margin requirement)" },      // "never the borrowed fraction"
+    { for: "f23", formula: "D₀ / (r − g)" },                              // "Gordon uses D₁, not D₀"
+    { for: "f25", formula: "payout × ROE" },                              // "uses retention (not payout)"
+    { for: "f25", formula: "(1 − payout) × ROA" },                        // "convert ROA to ROE with leverage"
+    { for: "f21", formula: "D / r" }                                      // "retractable valued as a perpetuity"
   ],
 
   formulas: [

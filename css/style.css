@@ -46,7 +46,7 @@ button { font-family: var(--ui); cursor: pointer; }
 #cash { text-align: right; color: #ffe27a; font-size: 20px; font-weight: 700; }
 
 #scene { flex: 1 1 auto; min-height: 0; position: relative; line-height: 0; background: var(--outside); overflow: hidden; }
-#canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; }
+#canvas { position: absolute; left: 0; top: 0; display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; }
 #overlay { position: absolute; left: 0; top: 0; pointer-events: none; overflow: hidden; line-height: 1.2; }
 .iconbtn {
   position: absolute; right: 8px; top: 8px; width: 34px; height: 34px;
@@ -78,6 +78,7 @@ button { font-family: var(--ui); cursor: pointer; }
 }
 .float.money { color: #ffe27a; font-size: 17px; }
 .float.zz { color: #cfe0ff; font-size: 13px; }
+.float.xp { color: #a8f0c0; font-size: 14px; }
 @keyframes floatUp {
   0% { opacity: 0; transform: translate(-50%, -60%) scale(0.7); }
   15% { opacity: 1; transform: translate(-50%, -100%) scale(1.1); }

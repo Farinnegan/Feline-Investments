@@ -47,15 +47,26 @@ window.Scene = (function () {
     wrap = opts.wrap; canvas = opts.canvas; overlay = opts.overlay;
     onStaffTap = opts.onStaffTap; onCeoTap = opts.onCeoTap; insetFn = opts.bottomInset;
     ctx = canvas.getContext("2d");
+    // re-measure whenever the play area changes size: first layout on iPhone home-screen apps,
+    // fonts finishing loading, rotation, toolbars appearing. Measuring only once left the office tiny.
     window.addEventListener("resize", resize);
+    window.addEventListener("orientationchange", () => setTimeout(resize, 250));
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) resize(); });
+    if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(wrap);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
+    [100, 400, 1200].forEach(ms => setTimeout(resize, ms));
     canvas.addEventListener("pointerdown", handleTap);
     resize();
     requestAnimationFrame(loop);
   }
 
+  let lastW = 0, lastH = 0;
   function resize() {
-    const w = wrap.clientWidth, h = Math.max(200, wrap.clientHeight);
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
     DPR = window.devicePixelRatio || 1;
+    if (w === lastW && h === lastH && canvas.width === Math.round(w * DPR)) { camera(); return; }
+    lastW = w; lastH = h;
     canvas.width = Math.round(w * DPR); canvas.height = Math.round(h * DPR);
     canvas.style.width = w + "px"; canvas.style.height = h + "px";
     overlay.style.width = w + "px"; overlay.style.height = h + "px";
@@ -78,6 +89,14 @@ window.Scene = (function () {
     layout = LAYOUTS[tier];
     camera();
     staff = staffList.map(s => ({ species: s.species, v: s.v, mood: "ok", jump: 0, name: s.name }));
+  }
+  function xpFloat(i, text) {
+    const a = i === -1 || i == null ? ceoAnchor() : staffAnchor(i);
+    floatText(a.x + 16, a.y - 8, text, "xp", 1400);
+  }
+  // sizes, for feedback notes about layout
+  function debugInfo() {
+    return { scene: [lastW, lastH], canvas: [canvas.width, canvas.height], dpr: DPR, zoom: +P.toFixed(2), office: layout.name, viewport: [window.innerWidth, window.innerHeight] };
   }
   function setCeo(v) { ceo = { species: "black-cat", v: v || 0, jump: 0, ceo: true }; }
   function setTrophies(n, g) { tombs = n; gear = g || []; }
@@ -291,5 +310,5 @@ window.Scene = (function () {
     if (hit(ceoAnchor())) onCeoTap && onCeoTap();
   }
 
-  return { init, setOffice, setCeo, setTrophies, describeAt, setMoods, reward, staffSay, ceoCheer, clientVisit, clientLeave, floatText, resize, LAYOUTS };
+  return { init, setOffice, setCeo, xpFloat, debugInfo, setTrophies, describeAt, setMoods, reward, staffSay, ceoCheer, clientVisit, clientLeave, floatText, resize, LAYOUTS };
 })();
