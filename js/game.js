@@ -128,6 +128,41 @@
   const qById = id => QUESTIONS.find(q => q.id === id);
   const topicMods = tp => Object.values(MODS).filter(M => M.tp === tp).sort((a, b) => a.id - b.id);
 
+  // ---------- memory model (FSRS) ----------
+  // Every concept you've seen has a stability S (days until recall drops to 90%) and a difficulty D.
+  // Recall fades along the FSRS forgetting curve; reviewing as it nears 90% strengthens it the most.
+  // Formulas and default weights from FSRS (open-spaced-repetition), as used by Anki.
+  const FS = { F: 19 / 81, C: -0.5, W: [0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621] };
+  const DAY_MS = 86400000;
+  const EXAM_AT = new Date(2026, 10, 15, 9).getTime();     // exam morning
+  const recall = (days, S) => Math.pow(1 + FS.F * Math.max(0, days) / S, FS.C);
+  const clampD = x => Math.min(10, Math.max(1, x));
+  const initD = g => clampD(FS.W[4] - Math.exp(FS.W[5] * (g - 1)) + 1);   // g: 1 = missed, 3 = right
+  function memUpdate(s, correct, now) {
+    const W = FS.W, g = correct ? 3 : 1;
+    if (!s.S) { s.S = W[g - 1]; s.D = initD(g); s.last = now; return; }
+    const days = (now - (s.last || now)) / DAY_MS, R = recall(days, s.S);
+    const dD = -W[6] * (g - 3);
+    s.D = clampD(W[7] * initD(4) + (1 - W[7]) * (s.D + dD * (10 - s.D) / 9));
+    if (days < 0.5) s.S = s.S * Math.exp(W[17] * (g - 3 + W[18]));                          // same sitting
+    else if (correct) s.S = s.S * (1 + Math.exp(W[8]) * (11 - s.D) * Math.pow(s.S, -W[9]) * (Math.exp(W[10] * (1 - R)) - 1));
+    else s.S = Math.min(s.S, W[11] * Math.pow(s.D, -W[12]) * (Math.pow(s.S + 1, W[13]) - 1) * Math.exp(W[14] * (1 - R)));
+    s.S = Math.max(0.1, s.S); s.last = now;
+  }
+  // recall chance now (0..1), or null for concepts not seen yet
+  function memNow(id, now = Date.now()) { const s = S.items[id]; return s && s.S ? recall((now - s.last) / DAY_MS, s.S) : null; }
+  const memExam = id => memNow(id, Math.max(Date.now(), EXAM_AT));
+  const memBand = r => r == null ? "unseen" : r >= 0.9 ? "fresh" : r >= 0.7 ? "fading" : "faded";
+  // older saves have no stability yet: rebuild it from the box level, as if reviewed at the old gaps
+  function seedMemory(st) {
+    if (st.S || !st.n) return;
+    let S0 = st.ok ? FS.W[2] : FS.W[0], D = clampD(initD(st.ok ? 3 : 1) + 0.8 * Math.min(st.bad || 0, 3));
+    for (let k = 2; k <= (st.b || 0); k++) S0 = S0 * (1 + Math.exp(FS.W[8]) * (11 - D) * Math.pow(S0, -FS.W[9]) * (Math.exp(FS.W[10] * (1 - recall(INTERVALS[k - 2], S0))) - 1));
+    if (st.flipTo) S0 = Math.min(S0, FS.W[0]);
+    st.S = S0; st.D = D;
+    st.last = st.at || (st.upDay != null ? (st.upDay * DAY_MS + (DAY_START_H + 8) * 3600000 + new Date().getTimezoneOffset() * 60000) : Date.now());
+  }
+
   // ---------- state ----------
   function freshState() {
     return {
@@ -142,7 +177,7 @@
     };
   }
   // Saves are upgraded in place, never wiped: new fields get defaults, old progress stays.
-  const SAVE_VERSION = 3;
+  const SAVE_VERSION = 4;
   function migrate(old) {
     if (!old || typeof old !== "object") return freshState();
     const S = Object.assign(freshState(), old);
@@ -164,6 +199,10 @@
       const free = VARIANTS.find(v => !S.staff.some(o => o !== st && o.topic === st.topic && o.v === v));
       st.v = free == null ? 0 : free;
     } });
+    Object.values(S.items).forEach(seedMemory);
+    // single-module focus became a set of modules you can pick
+    if (!Array.isArray(S.focusSet)) S.focusSet = Object.entries(S.focus || {}).filter(([, m]) => m).map(([tp, m]) => tp + ":" + m);
+    delete S.focus;
     S.v = SAVE_VERSION;
     return S;
   }
@@ -232,36 +271,41 @@
   }
   // Coverage first: a topic's scheduled reviews wait until every concept in it has been seen.
   // Missed concepts (and ones you marked Studied it) still come back for their retest.
-  // With Focus on, the focused module is the scope instead of the whole topic.
+  // Focused modules skip this rule: focusing is your call.
   function covering() {
     const out = {};
     LIVE.forEach(tp => { out[tp] = remainingNew(tp) > 0; });
-    focusKeys().forEach(k => { out[k] = (NEW_ORDER[mod(k).tp] || []).some(id => isNew(id) && ITEMS[id].mk === k); });
     return out;
   }
-  const focusKeys = () => Object.entries(S.focus || {}).filter(([tp, m]) => m && MODS[mkey(tp, m)]).map(([tp, m]) => mkey(tp, m));
+  // modules you chose to focus on (any topics), limited to desks you have staffed
+  const focusKeys = () => (S.focusSet || []).filter(k => MODS[k] && staffedTopics().includes(MODS[k].tp));
+  const isFocusKey = k => (S.focusSet || []).includes(k);
   // is this concept a review that is due right now?
   function isDue(id, cov, d) {
     const s = S.items[id];
     if (!s || S.study[id] || s.due > d) return false;
     if (s.flipTo) return true;                                         // a retest after a miss
-    const it = ITEMS[id];
-    if (cov[it.mk] !== undefined ? cov[it.mk] : cov[it.topic]) return false;   // still covering this topic/module
+    if (cov[ITEMS[id].topic]) return false;                           // still covering this topic
     return !(s.at && Date.now() - s.at < MIN_GAP_MS);
   }
   function statsOf(ids) {
-    const d = today(), cov = covering();
-    const r = { total: ids.length, intro: 0, due: 0, overdue: 0, tomorrow: 0, held: 0, unseen: 0, study: 0, shaky: 0, learned: 0, mastered: 0 };
+    const d = today(), cov = covering(), now = Date.now();
+    const r = { total: ids.length, intro: 0, due: 0, overdue: 0, tomorrow: 0, held: 0, unseen: 0, study: 0, shaky: 0, learned: 0, mastered: 0,
+      mem: null, exam: null, fresh: 0, fading: 0, faded: 0 };
+    let mSum = 0, eSum = 0, mN = 0;
     ids.forEach(id => {
       const st = status(id);
       r[st]++;
       const s = S.items[id];
       if (s) r.intro++;
+      const m = memNow(id, now);
+      if (m != null) { mSum += m; eSum += memExam(id); mN++; r[memBand(m)]++; }
       if (!s || st === "study") return;                  // studying items are paused: never due or overdue
       if (isDue(id, cov, d)) { r.due++; if (s.due < d) r.overdue++; }
       else if (s.due <= d) r.held++;                     // scheduled, but waiting for coverage (or the 12-hour gap)
       else if (s.due === d + 1) r.tomorrow++;
     });
+    if (mN) { r.mem = mSum / mN; r.exam = eSum / mN; }
     return r;
   }
   const topicStats = tp => statsOf(TOPIC_ITEMS[tp] || []);
@@ -277,40 +321,56 @@
   function canIntroduce(tp) { return shaky(tp) < MAX_SHAKY; }
   const isNew = id => !S.items[id] && !S.study[id];
   function remainingNew(tp) { return (NEW_ORDER[tp] || []).filter(isNew).length; }
-  function nextNew(tp) {
-    const f = S.focus && S.focus[tp];
-    if (f) { const id = (NEW_ORDER[tp] || []).find(x => isNew(x) && ITEMS[x].m === f); if (id) return id; }
-    return (NEW_ORDER[tp] || []).find(isNew);
+  const nextNew = (tp, keys) => (NEW_ORDER[tp] || []).find(x => isNew(x) && (!keys || keys.includes(ITEMS[x].mk)));
+  const pickOne = a => a[Math.floor(Math.random() * a.length)];
+  // the weakest memory first; a concept is only a real review once recall is below 90%
+  function weakest(pool) {
+    const now = Date.now();
+    const scored = pool.map(id => [id, memNow(id, now) ?? 0]).sort((a, b) => a[1] - b[1]);
+    const low = scored.slice(0, Math.max(1, Math.min(3, scored.length)));         // a little variety among the weakest
+    const [id, r] = pickOne(low);
+    return { id, mode: r < 0.9 ? "due" : "practice" };
   }
 
   function pickDeal(onlyTopic) {
     rollDay();
     const d = today(), cov = covering();
     const live = onlyTopic ? [onlyTopic] : staffedTopics();
-    // Focus means focus: a topic with a focused module only serves that module
-    const fk = {}; focusKeys().forEach(k => { fk[mod(k).tp] = k; });
-    const inScope = id => { const it = ITEMS[id]; return live.includes(it.topic) && (!fk[it.topic] || it.mk === fk[it.topic]); };
-    const ok = id => ITEMS[id] && inScope(id) && !S.study[id];
     const unlocked = id => !(S.items[id].lock > S.deals);
     const fresh = id => !S.recent.includes(id);
+    const seen = id => S.items[id] && !S.study[id];
+    // ---- Focus: only the chosen modules. Retests, then anything unseen, then the most faded.
+    const fk = focusKeys().filter(k => live.includes(MODS[k].tp));
+    if (fk.length) {
+      const inF = id => ITEMS[id] && fk.includes(ITEMS[id].mk);
+      const ids = Object.keys(ITEMS).filter(inF);
+      const retest = ids.filter(id => seen(id) && S.items[id].flipTo && S.items[id].due <= d && unlocked(id));
+      if (retest.length) return { id: pickOne(retest.filter(fresh).length ? retest.filter(fresh) : retest), mode: "due" };
+      const tps = [...new Set(fk.map(k => MODS[k].tp))].filter(tp => canIntroduce(tp) && nextNew(tp, fk));
+      if (tps.length) { const tp = pickOne(tps); return { id: nextNew(tp, fk), mode: "new" }; }
+      let pool = ids.filter(id => seen(id) && unlocked(id) && fresh(id));
+      if (!pool.length) pool = ids.filter(id => seen(id) && unlocked(id));
+      if (!pool.length) pool = ids.filter(seen);
+      if (pool.length) return weakest(pool);
+    }
+    // ---- Normal mix
+    const ok = id => ITEMS[id] && live.includes(ITEMS[id].topic) && !S.study[id];
     const due = Object.keys(S.items).filter(id => ok(id) && isDue(id, cov, d) && unlocked(id));
     if (due.length) {
       let pool = due.filter(fresh); if (!pool.length) pool = due;
-      const minDue = Math.min(...pool.map(id => S.items[id].due));
-      const top = pool.filter(id => S.items[id].due === minDue);
-      return { id: top[Math.floor(Math.random() * top.length)], mode: "due" };
+      const retest = pool.filter(id => S.items[id].flipTo);
+      if (retest.length) return { id: pickOne(retest), mode: "due" };
+      return Object.assign(weakest(pool), { mode: "due" });
     }
-    const withNew = live.filter(tp => canIntroduce(tp) && nextNew(tp) && inScope(nextNew(tp)))
+    const withNew = live.filter(tp => canIntroduce(tp) && nextNew(tp))
       .sort((a, b) => topicStats(a).intro / topicStats(a).total - topicStats(b).intro / topicStats(b).total);
     if (withNew.length) return { id: nextNew(withNew[0]), mode: "new" };
-    // nothing due or new: extra practice on the weakest concepts (still respecting the relearn gap)
+    // nothing due or new: extra practice on the most faded concepts (still respecting the relearn gap)
     let pool = Object.keys(S.items).filter(id => ok(id) && unlocked(id) && fresh(id));
     if (!pool.length) pool = Object.keys(S.items).filter(id => ok(id) && unlocked(id));
     if (!pool.length) pool = Object.keys(S.items).filter(ok);
     if (!pool.length) return null;
-    const minB = Math.min(...pool.map(id => S.items[id].b));
-    const low = pool.filter(id => S.items[id].b <= minB + 1);
-    return { id: low[Math.floor(Math.random() * low.length)], mode: "practice" };
+    return Object.assign(weakest(pool), { mode: "practice" });
   }
 
   function grade(deal, correct) {
@@ -318,18 +378,21 @@
     let s = S.items[id];
     const was = s ? s.b : 0;
     if (!s) { s = S.items[id] = { b: 0, due: d, n: 0, ok: 0, bad: 0 }; S.newCount[ITEMS[id].topic] = (S.newCount[ITEMS[id].topic] || 0) + 1; }
+    seedMemory(s);                                        // older concepts get a stability first (new ones have n = 0)
     s.n++;
+    memUpdate(s, correct, Date.now());
     if (correct) {
       s.ok++; delete s.flipTo; delete s.lock; delete s.studied;
+      s.at = Date.now();
       if (deal.mode !== "practice") {
-        s.at = Date.now();
         if (s.upDay === d || s.missDay === d) s.b = Math.max(s.b, 1);   // same-day retests only count as learned
         else s.b = Math.min(5, s.b + 1);
         s.upDay = d;
-        let due = d + INTERVALS[s.b - 1];
-        if (d < EXAM_DAY) due = Math.max(d + 1, Math.min(due, EXAM_DAY)); // never schedule past exam day
-        s.due = due;
       }
+      // next review when recall is due to fall to 90% (that's S days), never past exam day
+      let due = d + Math.max(1, Math.round(s.S));
+      if (d < EXAM_DAY) due = Math.max(d + 1, Math.min(due, EXAM_DAY));
+      s.due = due;
     } else {
       s.bad++; s.b = 0; s.due = d; s.missDay = d; delete s.at;     // a miss starts it over: next right answer = learned
       s.lock = S.deals + 1 + RELEARN_GAP;                 // comes back only after a few other calls
@@ -469,7 +532,9 @@
     $("btn-office").classList.toggle("dot", !!(next && officeReady(next)));
     const nl = staffedTopics().reduce((a, tp) => a + remainingNew(tp), 0);
     let hint;
-    if (tt.due > 0) hint = `${tt.due} review${tt.due > 1 ? "s" : ""} due today. Clients pay more for these.`;
+    const fkN = focusKeys().length;
+    if (fkN) hint = `🎯 Focused on ${fkN} module${fkN > 1 ? "s" : ""}. Change it in the Library.`;
+    else if (tt.due > 0) hint = `${tt.due} review${tt.due > 1 ? "s" : ""} due today. Clients pay more for these.`;
     else if (nl > 0) hint = `${nl} new concept${nl > 1 ? "s" : ""} to cover. Reviews start once a topic is fully seen.`;
     else hint = "All caught up! " + (tt.tomorrow ? tt.tomorrow + " due tomorrow. " : "") + "Extra calls pay less.";
     $("hint").textContent = hint;
@@ -919,13 +984,24 @@
   function legend(st) {
     return `<div class="legend">${STATES.slice().reverse().map(x => `<span><i class="s-${x.k}"></i>${x.label} <b>${st[x.k]}</b></span>`).join("")}</div>`;
   }
+  const pct = r => Math.round(r * 100) + "%";
+  function memChip(id) {
+    const r = memNow(id); if (r == null) return "";
+    return `<span class="memchip ${memBand(r)}" title="Recall chance now">${pct(r)}</span>`;
+  }
+  // a bar showing average recall now, with a tick for where it will be on exam day
+  function memBar(st) {
+    if (st.mem == null) return `<div class="membar none"><span>Memory: nothing seen yet</span></div>`;
+    return `<div class="membar"><i class="${memBand(st.mem)}" style="width:${Math.round(st.mem * 100)}%"></i><b style="left:${Math.round(st.exam * 100)}%"></b></div>
+      <div class="memline"><span>Memory now <b>${pct(st.mem)}</b></span><span>On exam day <b>${pct(st.exam)}</b></span>${st.faded ? `<span class="faded">${st.faded} faded</span>` : ""}</div>`;
+  }
   function moduleRows(tp) {
     return topicMods(tp).map(M => {
       const st = moduleStats(M.key);
       const lit = st.total && st.mastered / st.total >= 0.8;
       return `<button class="modbtn" data-k="${M.key}">
-        <span class="ml">${badge(M.key)}<span>M${M.id} ${esc(M.short)}${lit ? " <span class='tag new'>Skill +5%</span>" : ""}${isFocus(tp, M.id) ? " <span class='tag due'>Focus</span>" : ""}</span></span>
-        <span class="mr">Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</span>
+        <span class="ml">${badge(M.key)}<span>M${M.id} ${esc(M.short)}${lit ? " <span class='tag new'>Skill +5%</span>" : ""}${isFocusKey(M.key) ? " <span class='tag due'>🎯 Focus</span>" : ""}</span></span>
+        <span class="mr">Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}${st.mem != null ? ` · <span class="memtxt ${memBand(st.mem)}">${pct(st.mem)}</span>` : ""}</span>
         ${stackBar(st)}</button>`;
     }).join("");
   }
@@ -954,20 +1030,23 @@
       <div class="body">
         <div class="sect first">📖 Need to study <small>${n}</small></div>
         ${studyList()}
+        ${focusPanel()}
         ${tabs}
         <div class="sect">${esc(T.name)} progress <small>${all.total - all.unseen}/${all.total} seen</small></div>
         ${stackBar(all)}${legend(all)}
+        ${memBar(all)}
         <div class="cover ${all.unseen ? "" : "done"}">${all.unseen ? `<b>Covering: ${all.unseen} left to see.</b> Scheduled reviews start once you've seen everything in ${esc(T.name)}${all.held ? ` (${all.held} waiting)` : ""}. Misses still come back for a retest.` : `<b>All ${all.total} seen.</b> Reviews are on: ${all.due} due now, ${all.tomorrow} tomorrow.`}</div>
         ${staffed.includes(tp) ? "" : `<div class="note" style="color:var(--red)">No ${esc(T.name)} analyst yet. Hire one to start getting these concepts in client calls.</div>`}
-        <div class="note">Learned: right the first time. Mastered: right again at a later day's review. Shaky: missed, waiting for a retest. Tap a module to see each concept.</div>
+        <div class="note">Learned: right the first time. Mastered: right again at a later day's review. Shaky: missed, waiting for a retest. Memory is your chance of recalling a concept right now; it fades every day you don't review it. The tick shows where it lands on exam day if you stop reviewing. Tap a module to see each concept.</div>
         <div class="sect">Modules</div>
         ${moduleRows(tp)}
-        <div class="note">Open a module and tap Focus here: ${esc(T.name)} calls then come only from that module, new concepts first, then its reviews. Master 80% of a module to light it up for +5% ${esc(T.name)} fees.</div>
+        <div class="note">Master 80% of a module to light it up for +5% ${esc(T.name)} fees.</div>
       </div>
       <div class="foot"><button id="x">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
       root.querySelectorAll(".ttabs button").forEach(b => b.onclick = () => { Sfx.tap(); libraryWin(b.dataset.tp); });
       root.querySelectorAll(".modbtn").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(b.dataset.k); });
+      wireFocusPanel(root, () => libraryWin(tp));
       root.querySelectorAll(".studied").forEach(b => b.onclick = () => {
         const pitchQ = S.study[b.dataset.id] && S.study[b.dataset.id].kind === "pitch";
         Sfx.register(); markStudied(b.dataset.id);
@@ -976,30 +1055,78 @@
       });
     });
   }
-  const remainingIn = (tp, m) => (NEW_ORDER[tp] || []).some(id => isNew(id) && ITEMS[id].m === m);
-  const isFocus = (tp, m) => !!(S.focus && S.focus[tp] === m);
+  // ---------- focus on several modules ----------
+  const modLabel = k => `${topic(MODS[k].tp).short} M${MODS[k].id} ${MODS[k].short}`;
+  function focusPanel() {
+    const fk = S.focusSet || [];
+    if (fk.length) return `<div class="focusbox on"><div><b>🎯 Focused on ${fk.length} module${fk.length > 1 ? "s" : ""}</b><span>${fk.map(k => esc(modLabel(k))).join(" · ")}</span><small>Calls come only from these: anything unseen first, then the most faded.</small></div>
+      <div class="fbtns"><button id="f-pick">Change</button><button id="f-stop">Stop focusing</button></div></div>`;
+    return `<div class="focusbox"><div><b>🎯 Focus</b><small>Pick modules to drill. Calls then come only from them: anything unseen first, then whatever has faded most.</small></div>
+      <div class="fbtns"><button id="f-pick">Choose modules</button><button id="f-auto" class="primary">Most faded</button></div></div>`;
+  }
+  // the modules with the weakest memory right now (only ones you've started)
+  function mostFaded(n = 3) {
+    return Object.values(MODS).filter(M => staffedTopics().includes(M.tp)).map(M => [M.key, moduleStats(M.key)])
+      .filter(([, st]) => st.mem != null).sort((a, b) => a[1].mem - b[1].mem).slice(0, n).map(([k]) => k);
+  }
+  function setFocus(keys) {
+    S.focusSet = keys; save(); hud();
+    toast(keys.length ? `🎯 Calls now come only from ${keys.length} module${keys.length > 1 ? "s" : ""}.` : "Back to the normal mix.");
+  }
+  function wireFocusPanel(root, back) {
+    const pk = root.querySelector("#f-pick"); if (pk) pk.onclick = () => { Sfx.tap(); focusPickWin(back); };
+    const st = root.querySelector("#f-stop"); if (st) st.onclick = () => { Sfx.tap(); setFocus([]); back(); };
+    const au = root.querySelector("#f-auto"); if (au) au.onclick = () => {
+      Sfx.tap(); const k = mostFaded();
+      if (!k.length) { toast("Nothing has faded yet. Answer a few concepts first."); return; }
+      setFocus(k); back();
+    };
+  }
+  function focusPickWin(back, picked) {
+    const sel = new Set(picked || S.focusSet || []);
+    const staffed = staffedTopics();
+    const rows = Object.values(MODS).filter(M => staffed.includes(M.tp)).map(M => [M, moduleStats(M.key)])
+      .sort((a, b) => (a[1].mem == null) - (b[1].mem == null) || (a[1].mem ?? 0) - (b[1].mem ?? 0) || a[0].tp.localeCompare(b[0].tp) || a[0].id - b[0].id);
+    openWin(`<div class="win"><div class="head"><span>Choose modules</span><small>${sel.size} picked</small></div>
+      <div class="body"><div class="note" style="margin-top:0">Most faded first. Tap to pick as many as you like, from any topic.</div>
+        <div class="picklist">${rows.map(([M, st]) => `<button class="pickrow ${sel.has(M.key) ? "on" : ""}" data-k="${M.key}">
+          <span class="box">${sel.has(M.key) ? "✓" : ""}</span>
+          <span class="pk"><b>${esc(topic(M.tp).short)} M${M.id} ${esc(M.short)}</b>
+            <small>${st.mem == null ? `Not started · ${st.total} concepts` : `Now <b class="memtxt ${memBand(st.mem)}">${pct(st.mem)}</b> · exam day ${pct(st.exam)}${st.faded ? ` · ${st.faded} faded` : ""}${st.unseen ? ` · ${st.unseen} unseen` : ""}`}</small>
+            ${st.mem != null ? `<span class="minibar"><i class="${memBand(st.mem)}" style="width:${Math.round(st.mem * 100)}%"></i></span>` : ""}</span></button>`).join("")}</div></div>
+      <div class="foot"><button id="cancel">Cancel</button><button id="auto">Most faded 3</button><button id="go" class="primary" ${sel.size ? "" : "disabled"}>Focus on ${sel.size}</button></div></div>`, root => {
+      root.querySelectorAll(".pickrow").forEach(b => b.onclick = () => {
+        Sfx.tap(); const k = b.dataset.k; sel.has(k) ? sel.delete(k) : sel.add(k);
+        const y = root.querySelector(".body").scrollTop; focusPickWin(back, [...sel]); modal.querySelector(".body").scrollTop = y;
+      });
+      root.querySelector("#auto").onclick = () => { Sfx.tap(); focusPickWin(back, mostFaded()); };
+      root.querySelector("#cancel").onclick = () => { Sfx.tap(); back(); };
+      root.querySelector("#go").onclick = () => { Sfx.register(); setFocus([...sel]); back(); };
+    });
+  }
+
   function moduleWin(key, filter = "all") {
     const M = mod(key), tp = M.tp, m = M.id, C = TC[tp], st = moduleStats(key);
-    const focusNote = isFocus(tp, m) ? `<div class="cover">${st.unseen ? `<b>Focused.</b> ${esc(topic(tp).short)} calls come only from this module: ${st.unseen} new concept${st.unseen > 1 ? "s" : ""} first, then its reviews.` : `<b>Focused.</b> Everything here is seen, so ${esc(topic(tp).short)} calls bring this module's reviews, then extra practice.`}</div>` : "";
+    const focusNote = isFocusKey(key) ? `<div class="cover"><b>🎯 In your focus.</b> Calls come from your focused modules: ${st.unseen ? `${st.unseen} unseen here first, then` : ""} the most faded concepts.</div>` : "";
     const show = id => filter === "all" || status(id) === filter;
-    const terms = C.terms.filter(t => t.m === m && show(t.id)).map(t => `<div class="li">${cardIcon(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
-    const forms = C.formulas.filter(f => f.m === m && show(f.id)).map(f => `<div class="li">${cardIcon(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
+    const terms = C.terms.filter(t => t.m === m && show(t.id)).map(t => `<div class="li">${cardIcon(t.id)}${memChip(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
+    const forms = C.formulas.filter(f => f.m === m && show(f.id)).map(f => `<div class="li">${cardIcon(f.id)}${memChip(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
     const traps = filter === "all" ? (C.traps || []).filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("") : "";
     const tabs = [{ k: "all", label: "All", n: st.total }].concat(STATES.map(x => ({ k: x.k, label: x.label, n: st[x.k] })));
     openWin(`<div class="win"><div class="head"><span>M${m} ${esc(M.short)}</span><small>Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</small></div>
       <div class="body"><div class="subtitle">${esc(topic(tp).name)} · ${esc(M.name)}</div>${focusNote}
-        ${stackBar(st)}
+        ${stackBar(st)}${memBar(st)}
         <div class="tabs">${tabs.map(t => `<button data-f="${t.k}" class="${t.k === filter ? "on" : ""}" ${t.n || t.k === "all" ? "" : "disabled"}>${t.label} ${t.n}</button>`).join("")}</div>
         ${terms ? `<div class="sect">Key terms</div><div class="list">${terms}</div>` : ""}
         ${forms ? `<div class="sect">Formulas</div><div class="list">${forms}</div>` : ""}
         ${!terms && !forms ? `<div class="note">Nothing in this group.</div>` : ""}
         ${traps ? `<div class="sect">Exam traps</div><div class="list">${traps}</div>` : ""}
       </div>
-      <div class="foot"><button id="back">Back</button><button id="focus" class="${isFocus(tp, m) ? "" : "primary"}">${isFocus(tp, m) ? "Stop focusing" : "Focus here"}</button><button id="x">Close</button></div></div>`, root => {
+      <div class="foot"><button id="back">Back</button><button id="focus" class="${isFocusKey(key) ? "" : "primary"}">${isFocusKey(key) ? "Unfocus" : "🎯 Focus"}</button><button id="x">Close</button></div></div>`, root => {
       root.querySelector("#back").onclick = () => { Sfx.tap(); libraryWin(tp); };
       root.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(key, b.dataset.f); });
       const fb = root.querySelector("#focus");
-      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus[tp] = isFocus(tp, m) ? null : m; save(); toast(S.focus[tp] ? `${esc(topic(tp).short)} calls now come only from M${m}.` : "Back to the normal mix."); moduleWin(key, filter); };
+      if (fb) fb.onclick = () => { Sfx.tap(); const f = (S.focusSet || []).filter(k => k !== key); setFocus(isFocusKey(key) ? f : f.concat([key])); moduleWin(key, filter); };
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
     });
   }
@@ -1254,7 +1381,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-27a" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-27b" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);

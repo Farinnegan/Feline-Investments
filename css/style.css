@@ -322,3 +322,35 @@ button { font-family: var(--ui); cursor: pointer; }
 .list .li { overflow-wrap: anywhere; }
 .cover { background: #fff6dc; border: 2px solid #f0d58a; border-radius: 10px; padding: 8px 10px; margin: 8px 0; font-size: 13px; line-height: 1.4; }
 .cover.done { background: #e6f6ea; border-color: #9fd7ad; }
+
+/* ---------- memory (recall fading) ---------- */
+.fresh { --mc: #2f9e57; } .fading { --mc: #e0a019; } .faded { --mc: #d8443a; }
+.memchip { float: right; margin-left: 6px; font-family: var(--ui); font-size: 11px; font-weight: 700; color: #fff; background: var(--mc); border-radius: 6px; padding: 1px 6px; }
+.memtxt { color: var(--mc); font-weight: 700; }
+.membar { position: relative; height: 10px; border-radius: 6px; background: #e3e7f2; margin: 10px 0 4px; overflow: visible; }
+.membar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--mc); }
+.membar b { position: absolute; top: -3px; width: 3px; height: 16px; margin-left: -1px; background: var(--navy); border-radius: 2px; }
+.membar.none { height: auto; background: none; font-size: 12px; color: var(--muted); }
+.memline { display: flex; flex-wrap: wrap; gap: 4px 12px; font-family: var(--ui); font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.memline b { color: var(--ink); }
+.memline .faded { color: #d8443a; font-weight: 600; }
+
+/* ---------- focus on several modules ---------- */
+.focusbox { border: 2px dashed #b9c6e8; border-radius: 10px; padding: 10px; margin: 12px 0 4px; background: #f3f6fd; }
+.focusbox.on { border-style: solid; border-color: #e8b43a; background: #fff6dc; }
+.focusbox b { display: block; font-family: var(--ui); font-size: 14px; }
+.focusbox span { display: block; font-size: 13px; margin-top: 2px; }
+.focusbox small { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.fbtns { display: flex; gap: 8px; margin-top: 8px; }
+.fbtns button { flex: 1; padding: 7px 8px; font-size: 13px; }
+.picklist { display: flex; flex-direction: column; gap: 6px; }
+.pickrow { display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%; padding: 8px 10px; }
+.pickrow .box { flex: none; width: 22px; height: 22px; border: 2px solid #9aa8cc; border-radius: 6px; display: grid; place-items: center; font-size: 14px; color: #fff; margin-top: 1px; }
+.pickrow.on { background: #fff6dc; }
+.pickrow.on .box { background: var(--blue); border-color: var(--blue); }
+.pickrow .pk { flex: 1; min-width: 0; }
+.pickrow .pk b { display: block; font-size: 14px; }
+.pickrow .pk small { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+.minibar { display: block; height: 6px; border-radius: 4px; background: #e3e7f2; margin-top: 5px; overflow: hidden; }
+.minibar i { display: block; height: 100%; background: var(--mc); }
+.pickrow .pk small b { display: inline; font-size: inherit; }
