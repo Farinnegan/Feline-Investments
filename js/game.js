@@ -4,14 +4,17 @@
   const TC = Object.assign({ equity: window.CONTENT }, window.TOPIC_CONTENT || {});
 
   // ---------- calendar ----------
-  const dayNum = d => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+  // a game day runs from 4 AM to 4 AM, so late-night study doesn't roll straight into "tomorrow"
+  const DAY_START_H = 4;
+  const dayNum = d => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000 - DAY_START_H * 3600000) / 86400000);
   function today() { return dayNum(new Date()); }
-  const EXAM_DAY = dayNum(new Date(2026, 10, 15)); // 15 November 2026
+  const EXAM_DAY = dayNum(new Date(2026, 10, 15, 12)); // 15 November 2026
 
   // ---------- tuning ----------
   const INTERVALS = [1, 2, 4, 7, 12];   // days for boxes 1..5, short enough to cycle several times before the exam
   const MASTER_BOX = 2;                  // learned = right once; mastered = right again at a later day's review
-  const RELEARN_GAP = 5;                 // a missed concept waits at least this many calls before coming back
+  const RELEARN_GAP = 5;
+  const MIN_GAP_MS = 12 * 3600000;       // a concept answered right never comes back as a review sooner than this                 // a missed concept waits at least this many calls before coming back
   const MAX_SHAKY = 8;                   // no daily cap: new concepts keep coming while fewer than this many misses wait for a retest
   const OFFICES = [
     { cap: 3,  level: 1,  cost: 0 },
@@ -168,7 +171,13 @@
   function save() { Store.save(S); if (window.Reminders) Reminders.writeSummary(reminderSummary()); }
   function reminderSummary() {
     const live = staffedTopics(), dueByDay = {};
-    Object.entries(S.items).forEach(([id, st]) => { if (ITEMS[id] && live.includes(ITEMS[id].topic)) dueByDay[st.due] = (dueByDay[st.due] || 0) + 1; });
+    const cov = covering();
+    Object.entries(S.items).forEach(([id, st]) => {
+      const it = ITEMS[id];
+      if (!it || !live.includes(it.topic) || S.study[id]) return;
+      if (!st.flipTo && (cov[it.mk] !== undefined ? cov[it.mk] : cov[it.topic])) return;   // held until the topic is covered
+      dueByDay[st.due] = (dueByDay[st.due] || 0) + 1;
+    });
     return { examDay: EXAM_DAY, dueByDay, pitchDay: S.pitch.runs > 0 ? S.pitch.day : null, at: Date.now() };
   }
 
@@ -221,17 +230,37 @@
     if (s.flipTo || !s.ok) return "shaky";
     return s.b >= MASTER_BOX ? "mastered" : "learned";
   }
+  // Coverage first: a topic's scheduled reviews wait until every concept in it has been seen.
+  // Missed concepts (and ones you marked Studied it) still come back for their retest.
+  // With Focus on, the focused module is the scope instead of the whole topic.
+  function covering() {
+    const out = {};
+    LIVE.forEach(tp => { out[tp] = remainingNew(tp) > 0; });
+    focusKeys().forEach(k => { out[k] = (NEW_ORDER[mod(k).tp] || []).some(id => isNew(id) && ITEMS[id].mk === k); });
+    return out;
+  }
+  const focusKeys = () => Object.entries(S.focus || {}).filter(([tp, m]) => m && MODS[mkey(tp, m)]).map(([tp, m]) => mkey(tp, m));
+  // is this concept a review that is due right now?
+  function isDue(id, cov, d) {
+    const s = S.items[id];
+    if (!s || S.study[id] || s.due > d) return false;
+    if (s.flipTo) return true;                                         // a retest after a miss
+    const it = ITEMS[id];
+    if (cov[it.mk] !== undefined ? cov[it.mk] : cov[it.topic]) return false;   // still covering this topic/module
+    return !(s.at && Date.now() - s.at < MIN_GAP_MS);
+  }
   function statsOf(ids) {
-    const d = today();
-    const r = { total: ids.length, intro: 0, due: 0, overdue: 0, tomorrow: 0, unseen: 0, study: 0, shaky: 0, learned: 0, mastered: 0 };
+    const d = today(), cov = covering();
+    const r = { total: ids.length, intro: 0, due: 0, overdue: 0, tomorrow: 0, held: 0, unseen: 0, study: 0, shaky: 0, learned: 0, mastered: 0 };
     ids.forEach(id => {
       const st = status(id);
       r[st]++;
       const s = S.items[id];
       if (s) r.intro++;
       if (!s || st === "study") return;                  // studying items are paused: never due or overdue
-      if (s.due <= d) r.due++; else if (s.due === d + 1) r.tomorrow++;
-      if (s.due < d) r.overdue++;
+      if (isDue(id, cov, d)) { r.due++; if (s.due < d) r.overdue++; }
+      else if (s.due <= d) r.held++;                     // scheduled, but waiting for coverage (or the 12-hour gap)
+      else if (s.due === d + 1) r.tomorrow++;
     });
     return r;
   }
@@ -256,19 +285,22 @@
 
   function pickDeal(onlyTopic) {
     rollDay();
-    const d = today();
+    const d = today(), cov = covering();
     const live = onlyTopic ? [onlyTopic] : staffedTopics();
-    const ok = id => ITEMS[id] && live.includes(ITEMS[id].topic) && !S.study[id];
+    // Focus means focus: a topic with a focused module only serves that module
+    const fk = {}; focusKeys().forEach(k => { fk[mod(k).tp] = k; });
+    const inScope = id => { const it = ITEMS[id]; return live.includes(it.topic) && (!fk[it.topic] || it.mk === fk[it.topic]); };
+    const ok = id => ITEMS[id] && inScope(id) && !S.study[id];
     const unlocked = id => !(S.items[id].lock > S.deals);
     const fresh = id => !S.recent.includes(id);
-    const due = Object.keys(S.items).filter(id => ok(id) && S.items[id].due <= d && unlocked(id));
+    const due = Object.keys(S.items).filter(id => ok(id) && isDue(id, cov, d) && unlocked(id));
     if (due.length) {
       let pool = due.filter(fresh); if (!pool.length) pool = due;
       const minDue = Math.min(...pool.map(id => S.items[id].due));
       const top = pool.filter(id => S.items[id].due === minDue);
       return { id: top[Math.floor(Math.random() * top.length)], mode: "due" };
     }
-    const withNew = live.filter(tp => canIntroduce(tp) && nextNew(tp))
+    const withNew = live.filter(tp => canIntroduce(tp) && nextNew(tp) && inScope(nextNew(tp)))
       .sort((a, b) => topicStats(a).intro / topicStats(a).total - topicStats(b).intro / topicStats(b).total);
     if (withNew.length) return { id: nextNew(withNew[0]), mode: "new" };
     // nothing due or new: extra practice on the weakest concepts (still respecting the relearn gap)
@@ -290,6 +322,7 @@
     if (correct) {
       s.ok++; delete s.flipTo; delete s.lock; delete s.studied;
       if (deal.mode !== "practice") {
+        s.at = Date.now();
         if (s.upDay === d || s.missDay === d) s.b = Math.max(s.b, 1);   // same-day retests only count as learned
         else s.b = Math.min(5, s.b + 1);
         s.upDay = d;
@@ -298,7 +331,7 @@
         s.due = due;
       }
     } else {
-      s.bad++; s.b = 0; s.due = d; s.missDay = d;     // a miss starts it over: next right answer = learned
+      s.bad++; s.b = 0; s.due = d; s.missDay = d; delete s.at;     // a miss starts it over: next right answer = learned
       s.lock = S.deals + 1 + RELEARN_GAP;                 // comes back only after a few other calls
       s.flipTo = deal.reverse ? "normal" : "reverse";     // ...and asked the other way round
     }
@@ -437,7 +470,7 @@
     const nl = staffedTopics().reduce((a, tp) => a + remainingNew(tp), 0);
     let hint;
     if (tt.due > 0) hint = `${tt.due} review${tt.due > 1 ? "s" : ""} due today. Clients pay more for these.`;
-    else if (nl > 0) hint = `${nl} new concept${nl > 1 ? "s" : ""} waiting. Keep the clients coming!`;
+    else if (nl > 0) hint = `${nl} new concept${nl > 1 ? "s" : ""} to cover. Reviews start once a topic is fully seen.`;
     else hint = "All caught up! " + (tt.tomorrow ? tt.tomorrow + " due tomorrow. " : "") + "Extra calls pay less.";
     $("hint").textContent = hint;
     $("sound").classList.toggle("off", S.muted);
@@ -924,11 +957,12 @@
         ${tabs}
         <div class="sect">${esc(T.name)} progress <small>${all.total - all.unseen}/${all.total} seen</small></div>
         ${stackBar(all)}${legend(all)}
+        <div class="cover ${all.unseen ? "" : "done"}">${all.unseen ? `<b>Covering: ${all.unseen} left to see.</b> Scheduled reviews start once you've seen everything in ${esc(T.name)}${all.held ? ` (${all.held} waiting)` : ""}. Misses still come back for a retest.` : `<b>All ${all.total} seen.</b> Reviews are on: ${all.due} due now, ${all.tomorrow} tomorrow.`}</div>
         ${staffed.includes(tp) ? "" : `<div class="note" style="color:var(--red)">No ${esc(T.name)} analyst yet. Hire one to start getting these concepts in client calls.</div>`}
         <div class="note">Learned: right the first time. Mastered: right again at a later day's review. Shaky: missed, waiting for a retest. Tap a module to see each concept.</div>
         <div class="sect">Modules</div>
         ${moduleRows(tp)}
-        <div class="note">Tap Focus here inside a module to pull its new concepts in first. Master 80% of a module to light it up for +5% ${esc(T.name)} fees.</div>
+        <div class="note">Open a module and tap Focus here: ${esc(T.name)} calls then come only from that module, new concepts first, then its reviews. Master 80% of a module to light it up for +5% ${esc(T.name)} fees.</div>
       </div>
       <div class="foot"><button id="x">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
@@ -946,13 +980,14 @@
   const isFocus = (tp, m) => !!(S.focus && S.focus[tp] === m);
   function moduleWin(key, filter = "all") {
     const M = mod(key), tp = M.tp, m = M.id, C = TC[tp], st = moduleStats(key);
+    const focusNote = isFocus(tp, m) ? `<div class="cover">${st.unseen ? `<b>Focused.</b> ${esc(topic(tp).short)} calls come only from this module: ${st.unseen} new concept${st.unseen > 1 ? "s" : ""} first, then its reviews.` : `<b>Focused.</b> Everything here is seen, so ${esc(topic(tp).short)} calls bring this module's reviews, then extra practice.`}</div>` : "";
     const show = id => filter === "all" || status(id) === filter;
     const terms = C.terms.filter(t => t.m === m && show(t.id)).map(t => `<div class="li">${cardIcon(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
     const forms = C.formulas.filter(f => f.m === m && show(f.id)).map(f => `<div class="li">${cardIcon(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
     const traps = filter === "all" ? (C.traps || []).filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("") : "";
     const tabs = [{ k: "all", label: "All", n: st.total }].concat(STATES.map(x => ({ k: x.k, label: x.label, n: st[x.k] })));
     openWin(`<div class="win"><div class="head"><span>M${m} ${esc(M.short)}</span><small>Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</small></div>
-      <div class="body"><div class="subtitle">${esc(topic(tp).name)} · ${esc(M.name)}</div>
+      <div class="body"><div class="subtitle">${esc(topic(tp).name)} · ${esc(M.name)}</div>${focusNote}
         ${stackBar(st)}
         <div class="tabs">${tabs.map(t => `<button data-f="${t.k}" class="${t.k === filter ? "on" : ""}" ${t.n || t.k === "all" ? "" : "disabled"}>${t.label} ${t.n}</button>`).join("")}</div>
         ${terms ? `<div class="sect">Key terms</div><div class="list">${terms}</div>` : ""}
@@ -960,11 +995,11 @@
         ${!terms && !forms ? `<div class="note">Nothing in this group.</div>` : ""}
         ${traps ? `<div class="sect">Exam traps</div><div class="list">${traps}</div>` : ""}
       </div>
-      <div class="foot"><button id="back">Back</button>${remainingIn(tp, m) ? `<button id="focus" class="${isFocus(tp, m) ? "" : "primary"}">${isFocus(tp, m) ? "Stop focusing" : "Focus here"}</button>` : ""}<button id="x">Close</button></div></div>`, root => {
+      <div class="foot"><button id="back">Back</button><button id="focus" class="${isFocus(tp, m) ? "" : "primary"}">${isFocus(tp, m) ? "Stop focusing" : "Focus here"}</button><button id="x">Close</button></div></div>`, root => {
       root.querySelector("#back").onclick = () => { Sfx.tap(); libraryWin(tp); };
       root.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { Sfx.tap(); moduleWin(key, b.dataset.f); });
       const fb = root.querySelector("#focus");
-      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus[tp] = isFocus(tp, m) ? null : m; save(); toast(S.focus[tp] ? `New ${esc(topic(tp).short)} concepts will come from M${m} first.` : "Back to the normal order."); moduleWin(key, filter); };
+      if (fb) fb.onclick = () => { Sfx.tap(); S.focus = S.focus || {}; S.focus[tp] = isFocus(tp, m) ? null : m; save(); toast(S.focus[tp] ? `${esc(topic(tp).short)} calls now come only from M${m}.` : "Back to the normal mix."); moduleWin(key, filter); };
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
     });
   }
@@ -1219,7 +1254,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-26f" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-27a" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);
