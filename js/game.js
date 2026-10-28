@@ -179,7 +179,8 @@
       lastDay: null, muted: false,
       pitch: { day: null, runs: 0, q: {}, tombs: [] },
       study: {},                                                      // Need to study ledger: id -> entry
-      xp: 0, level: 1
+      xp: 0, level: 1,
+      bestCombo: 0, ambient: true
     };
   }
   // Saves are upgraded in place, never wiped: new fields get defaults, old progress stays.
@@ -258,7 +259,7 @@
       S.level = now;
       const office = OFFICES.findIndex(o => o.level === now);
       setTimeout(() => {
-        Sfx.fanfare(); Scene.ceoCheer(); Scene.staffSay(-1, "Level " + now + "!", 1800);
+        Sfx.levelUp(); Scene.cheer(); Scene.staffSay(-1, "Level " + now + "!", 1800);
         toast(`⭐ Firm level ${now}! Fees +${Math.round(LEVEL_FEE * 100)}%.` + (office > 0 ? ` The ${Scene.LAYOUTS[office].name} is unlocked. Open Office.` : ""), "gold");
       }, 600);
     }
@@ -503,9 +504,205 @@
     if (deal.mode === "practice") fee *= 0.4;
     if (hasGear("financial-calculator") && (deal.type === "formula" || deal.type === "rformula")) fee *= 1.1;
     if (hasGear("multi-monitor-terminal")) fee *= 1.15;
+    fee *= comboMult();
     return Math.round(fee / 10) * 10;
   }
   const aumFor = (deal, fee) => Math.round(fee * AUM_PER_FEE * (1 + 0.06 * teamBonus(deal.topic).n) * (hasGear("analyst-briefcase") ? 1.1 : 1));
+
+  // ---------- combo: right answers in a row ----------
+  // Every right answer (client calls, Pitch Day, walk-up tasks) adds one; a miss quietly resets it.
+  // Fees grow 10% per step, up to double at 10 in a row. The deal bell rings at 5, the office cheers every 10.
+  let combo = 0, toldBest = false;
+  const comboMult = () => 1 + 0.1 * Math.min(combo, 10);
+  function showCombo(bump) {
+    const el = $("combo"); if (!el) return;
+    if (combo < 2) { el.classList.add("hidden"); return; }
+    el.className = (combo >= 10 ? "blaze" : combo >= 5 ? "hot" : "") + (bump ? " bump" : "");
+    el.innerHTML = `🔥 ${combo}<small>in a row · fees ×${comboMult().toFixed(1)}</small>`;
+    if (bump) setTimeout(() => el.classList.remove("bump"), 300);
+  }
+  function comboHit() {
+    combo++;
+    setTimeout(() => Sfx.combo(combo), 160);
+    showCombo(true);
+    if (combo === 5) setTimeout(() => { Sfx.bell(); Scene.tickerFlash("🔔 DEAL BELL · 5 IN A ROW · " + (S.firm || "FELINE INVESTMENTS").toUpperCase()); toast("🔔 Deal bell! 5 in a row. Fees ×1.5 now.", "gold"); }, 450);
+    if (combo >= 10 && combo % 10 === 0) setTimeout(() => { Scene.cheer(); Sfx.cheer(); toast(`🎉 ${combo} in a row! The whole floor is cheering.`, "gold"); }, 450);
+    if (combo > (S.bestCombo || 0)) {
+      const was = S.bestCombo || 0; S.bestCombo = combo;
+      if (!toldBest && was >= 3 && combo > was) { toldBest = true; setTimeout(() => { Sfx.congrats(); toast(`🏆 New best streak: ${combo}!`, "gold"); }, 900); }
+    }
+    updateTicker();
+  }
+  function comboMiss() { combo = 0; showCombo(false); }
+
+  // ---------- money you can see: coins fly to the cash counter, which rolls up ----------
+  let dispCash = S.cash, rolling = false;
+  function payout(si, amount) {
+    const to = $("cash").getBoundingClientRect(), from = Scene.staffPoint(si);
+    rolling = true;                                   // hold the counter until the coins land
+    const n = Math.min(10, 3 + Math.floor(amount / 600));
+    for (let k = 0; k < n; k++) {
+      const c = document.createElement("div"); c.className = "flycoin";
+      c.style.left = (from.x + (Math.random() - 0.5) * 24) + "px"; c.style.top = (from.y + (Math.random() - 0.5) * 16) + "px";
+      document.body.appendChild(c);
+      setTimeout(() => {
+        c.style.transform = `translate(${to.left + to.width - 14 - parseFloat(c.style.left)}px, ${to.top + to.height / 2 - parseFloat(c.style.top)}px) scale(0.7)`;
+        c.style.opacity = "0.2";
+      }, 30 + k * 45);
+      setTimeout(() => c.remove(), 800 + k * 45);
+    }
+    setTimeout(rollCash, 650);
+  }
+  function rollCash() {
+    const start = dispCash, end = S.cash, t0 = performance.now(), el = $("cash");
+    if (start === end) { rolling = false; return; }
+    rolling = true; el.classList.add("pulse"); setTimeout(() => el.classList.remove("pulse"), 360);
+    const step = now => {
+      const k = Math.min(1, (now - t0) / 650), e = 1 - Math.pow(1 - k, 3);
+      dispCash = Math.round(start + (end - start) * e);
+      el.textContent = money(dispCash);
+      if (k < 1) requestAnimationFrame(step); else { rolling = false; dispCash = S.cash; el.textContent = money(dispCash); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ---------- the wall ticker ----------
+  // Market names drift on their own (scenery). Your firm's ticker tracks real progress:
+  // AUM grown this session, plus a bump for the current streak.
+  const sessionAum = S.aum;
+  const MARKET = [["BAMB", 42.1], ["TALL", 118.4], ["NITE", 23.9], ["FLOK", 77.2], ["BULL", 64.5], ["WOLF", 51.3], ["OWLY", 33.8], ["TRTL", 19.6], ["FOXX", 88.0], ["HRSE", 45.2]]
+    .map(([sym, px]) => ({ sym, px, ch: (Math.random() - 0.45) * 3 }));
+  function firmSym() {
+    const w = (S.firm || "Feline Investments").toUpperCase().replace(/[^A-Z ]/g, "").split(/\s+/).filter(Boolean);
+    if (w.join(" ") === "FELINE INVESTMENTS" || !w.length) return "FELN";
+    return (w.length > 1 ? w[0].slice(0, 3) + w[1][0] : w[0]).slice(0, 4);
+  }
+  function updateTicker() {
+    MARKET.forEach(m => { const d = (Math.random() - 0.48) * 0.8; m.ch = Math.max(-6, Math.min(6, m.ch + d)); m.px = Math.max(1, m.px * (1 + d / 100)); });
+    const ch = (S.aum - sessionAum) / Math.max(1, sessionAum) * 100 + combo * 0.4;
+    const mine = { sym: firmSym(), px: 10 + S.aum / 1e6, ch, mine: true };
+    Scene.setTicker([mine, ...MARKET.slice(0, 5), mine, ...MARKET.slice(5)]);
+  }
+
+  // ---------- walk-ups: an analyst comes to your desk with a quick task ----------
+  // When it happens is a surprise. What it pays is fixed and shown before you start.
+  let walkup = null, callsSinceWalk = 0, walkTarget = 6 + Math.floor(Math.random() * 6), lastWalkAt = Date.now(), lastDesk = -1;
+  const OPENERS = [
+    ["Boss! Client's on hold and I need a quick sanity check.", "Three quick ones, then I'm back on the phone."],
+    ["My pension fund contact sent questions. Help me look smart?", "They like fast answers. So do I."],
+    ["Three quick ones. I want this closed today.", "No pressure. Okay, a little pressure."],
+    ["Sorry to bother you… could you check my work?", "I think I'm right. I'd like to be sure."]
+  ];
+  const archOf = st => (st.v + TOPICS.indexOf(topic(st.topic))) % ARCH.length;
+  const taskPay = () => Math.round(4500 * (1 + 0.25 * S.office) * (1 + LEVEL_FEE * (S.level - 1)) / 100) * 100;
+  function taskItems(tp) {
+    // a topic still being covered brings new concepts; a covered topic brings your faintest memories
+    if (remainingNew(tp) > 0) return (NEW_ORDER[tp] || []).filter(isNew).slice(0, 3).map(id => ({ id, mode: "new" }));
+    const now = Date.now();
+    const pool = (TOPIC_ITEMS[tp] || []).filter(id => { const st = S.items[id]; return st && !S.study[id] && !(st.at && now - st.at < MIN_GAP_MS); })
+      .map(id => [id, memNow(id, now) ?? 0]).sort((a, b) => a[1] - b[1]).slice(0, 8);
+    return shuffle(pool).slice(0, 3).map(([id, r]) => ({ id, mode: r < 0.9 ? "due" : "practice" }));
+  }
+  function canWalkup() {
+    return !walkup && !busy && modal.classList.contains("hidden") && !document.hidden && S.staff.length > 0;
+  }
+  function maybeWalkup(force) {
+    if (!canWalkup()) return;
+    const due = force || callsSinceWalk >= walkTarget || Date.now() - lastWalkAt > 4 * 60000;
+    if (!due) return;
+    const free = Life.free().filter(i => S.staff[i] && taskItems(S.staff[i].topic).length >= 2);
+    if (!free.length) return;
+    const i = free[Math.floor(Math.random() * free.length)], st = S.staff[i];
+    callsSinceWalk = 0; walkTarget = 6 + Math.floor(Math.random() * 6); lastWalkAt = Date.now();
+    walkup = { i, arrived: false };
+    Life.hold(i);
+    Scene.walk(i, "ceo").then(() => {
+      if (!walkup || walkup.i !== i) return;
+      walkup.arrived = true;
+      Scene.setAlert(i, true); Sfx.alert(); setTimeout(() => Sfx.walkup(), 350);
+      Scene.say(i, OPENERS[archOf(st)][0], 2600);
+      const co = $("callout");
+      co.innerHTML = `<img src="${Sprites.cowUrl(st.species, st.v, 1)}" alt=""><span>${esc(st.name.split(" ")[0])} needs you</span>`;
+      co.classList.remove("hidden");
+      co.onclick = () => { Sfx.accept(); openTask(i); };
+      walkup.timer = setTimeout(() => endWalkup("I'll come back later."), 90000);
+    });
+  }
+  function endWalkup(line) {
+    if (!walkup) return;
+    const i = walkup.i; clearTimeout(walkup.timer); walkup = null;
+    $("callout").classList.add("hidden");
+    Scene.setAlert(i, false);
+    if (line) Scene.say(i, line, 1500);
+    setTimeout(() => Scene.goBack(i).then(() => Life.release(i)), line ? 900 : 200);
+  }
+  function openTask(i) {
+    if (!walkup || walkup.i !== i || !walkup.arrived) return;
+    clearTimeout(walkup.timer);
+    $("callout").classList.add("hidden");
+    Scene.setAlert(i, false);
+    const st = S.staff[i], picks = taskItems(st.topic);
+    if (!picks.length) { endWalkup("Never mind, sorted it."); return; }
+    runTask({ i, st, deals: picks.map(p => buildDeal(p)), k: 0, right: 0, studied: 0, pay: taskPay() });
+  }
+  function runTask(run) {
+    const deal = run.deals[run.k], st = run.st, keys = ["A", "B", "C", "D"], m = mod(deal.mk);
+    modal.dataset.lock = "1";
+    CTX.question = { kind: "walk-up task", itemId: deal.id, topic: deal.topic, module: deal.m, mode: deal.mode, format: deal.type, prompt: strip(deal.prompt), options: deal.opts.map(o => o.text), answer: deal.opts.find(o => o.right).text };
+    const pips = run.deals.map((_, k) => `<i class="${k < run.k ? "done" : k === run.k ? "now" : ""}"></i>`).join("");
+    const head = run.k === 0 ? `<div class="taskhead"><img src="${Sprites.cowUrl(st.species, st.v, 2)}" alt=""><div class="line">${esc(OPENERS[archOf(st)][0])} ${esc(OPENERS[archOf(st)][1])}</div></div>
+      <div class="reward">Reward: ${money(run.pay)} and +${XP.review * 3} XP for all ${run.deals.length}. Get them all right and the deal bell rings.</div>` : "";
+    openWin(`<div class="win"><div class="head"><span>${esc(st.name)}'s request</span><small>${run.k + 1} of ${run.deals.length}</small></div>
+      <div class="body">${head}<div class="pips2">${pips}</div>
+        <div class="pitchtop"><div><span class="tag">${esc(deal.label)}</span><span class="tag">${esc(topic(deal.topic).short)} M${m.id} ${esc(m.short)}</span></div><button id="t-idk" class="idk">📖 I don't know</button></div>
+        <div class="prompt">${deal.prompt}</div><div class="ask">${esc(deal.ask.replace("the client", st.name.split(" ")[0]))}</div>
+        <div class="opts">${deal.opts.map((o, k) => `<button class="opt" data-i="${k}"><span class="k">${keys[k]}</span><span>${esc(o.text)}</span></button>`).join("")}</div>
+        <div id="res"></div></div>
+      <div class="foot" id="dealfoot" style="display:none"><button id="nx" class="primary">${run.k + 1 < run.deals.length ? "Next" : "Wrap up"}</button></div></div>`, root => {
+      const next = () => { Sfx.tap(); run.k++; if (run.k < run.deals.length) runTask(run); else taskSummary(run); };
+      root.querySelector("#t-idk").onclick = () => {
+        Sfx.printer();
+        addStudy(deal.id, { kind: "call", tp: deal.topic, m: deal.m, format: deal.type, label: deal.label, prompt: strip(deal.prompt) });
+        run.studied++;
+        root.querySelectorAll(".opt, #t-idk").forEach(b => b.disabled = true);
+        root.querySelector(".opts").style.display = "none"; root.querySelector(".ask").style.display = "none";
+        root.querySelector("#res").innerHTML = studiedNote();
+        root.querySelector("#dealfoot").style.display = "flex";
+        root.querySelector("#nx").onclick = next;
+        save(); hud();
+      };
+      root.querySelectorAll(".opt").forEach(btn => btn.onclick = () => {
+        const btns = [...root.querySelectorAll(".opt")]; btns.forEach(b => b.disabled = true);
+        const k = +btn.dataset.i, right = deal.opts[k].right, ri = deal.opts.findIndex(o => o.right);
+        btns[ri].classList.add("right"); if (!right) btns[k].classList.add("wrong");
+        btns.forEach((b, j) => { if (j !== ri && j !== k) b.classList.add("dim"); });
+        grade(deal, right); S.deals++;
+        if (right) { run.right++; Sfx.register(); comboHit(); gainXP(XP.review, run.i); Scene.say(run.i, "Nice.", 900); }
+        else { comboMiss(); Sfx.thud(); }
+        root.querySelector("#res").innerHTML = `<div class="result ${right ? "good" : "bad"}"><div class="title">${right ? "Spot on" : "Not quite"}</div><div class="why">${deal.why}</div></div>`;
+        root.querySelector("#dealfoot").style.display = "flex";
+        root.querySelector("#nx").onclick = next;
+        root.querySelector("#res").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        save(); hud(); refreshScene(false);
+      });
+    });
+  }
+  function taskSummary(run) {
+    CTX.question = null; delete modal.dataset.lock;
+    const n = run.deals.length, answered = n - run.studied, perfect = run.right === n;
+    const cash = Math.round(run.pay * run.right / n / 10) * 10, bonusXp = perfect ? XP.mastery : 0;
+    S.cash += cash; if (bonusXp) gainXP(bonusXp, run.i);
+    const line = perfect ? "You're the best. Closing it now!" : run.right ? "That helps a lot, thanks boss." : "Back to the books for both of us.";
+    openWin(`<div class="win"><div class="head"><span>${esc(run.st.name)}</span><small>Task done</small></div>
+      <div class="body"><div class="taskhead"><img src="${Sprites.cowUrl(run.st.species, run.st.v, 2)}" alt=""><div class="line">${esc(line)}</div></div>
+        <div class="kv"><span>Right</span><span>${run.right} of ${answered}</span><span>Cash</span><span>+${money(cash)}</span>${bonusXp ? `<span>Perfect bonus</span><span>+${bonusXp} XP</span>` : ""}${run.studied ? `<span>Added to Need to study</span><span>${run.studied}</span>` : ""}</div></div>
+      <div class="foot"><button id="x" class="primary">Back to work</button></div></div>`, root => {
+      root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); endWalkup(perfect ? "🔔" : ""); };
+    });
+    if (cash) payout(run.i, cash);
+    if (perfect) { Sfx.taskDone(); Scene.cheer(); }
+    save(); hud();
+  }
 
   // ---------- windows ----------
   const modal = $("modal");
@@ -525,7 +722,8 @@
     rollDay();
     const dl = daysLeft();
     $("countdown").innerHTML = dl > 0 ? `<b>D-${dl}</b><small>to exam</small>` : dl === 0 ? "<b>Exam day</b><small>good luck!</small>" : "<b>Done</b><small>exam passed</small>";
-    $("cash").textContent = money(S.cash);
+    if (!rolling) dispCash = S.cash;
+    $("cash").textContent = money(dispCash);
     $("firmname").textContent = S.firm || "Feline Investments";
     const tt = totals();
     $("s-aum").textContent = money(S.aum);
@@ -570,9 +768,12 @@
     const t = team(deal.topic);
     S.rr[deal.topic] = ((S.rr[deal.topic] || 0) + 1) % t.length;
     const si = S.staff.indexOf(t[S.rr[deal.topic]]);
+    lastDesk = si;
     Sfx.door();
     const client = CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
     deal.client = client;
+    Life.hold(si);
+    if (Scene.isAway(si) && !(walkup && walkup.i === si)) await Scene.goBack(si);
     await Scene.clientVisit(si, client.sprite);
     Sfx.keys(5);
     await wait(250);
@@ -641,6 +842,8 @@
       const aum = aumFor(deal, fee);
       S.cash += fee; S.aum += aum;
       Sfx.register();
+      comboHit();
+      payout(si, fee);
       Scene.reward(si, "+" + money(fee));
       const xp = (deal.mode === "due" ? XP.review : deal.mode === "practice" ? XP.practice : XP.call) + (g.newlyMastered ? XP.mastery : 0);
       gainXP(xp, si);
@@ -655,6 +858,7 @@
       if (S.streak[deal.topic] === 3) setTimeout(() => Sfx.sting(), 300);
     } else {
       S.streak[deal.topic] = 0;
+      comboMiss();
       Sfx.thud();
       Scene.staffSay(si, OOPS[Math.floor(Math.random() * OOPS.length)], 1400);
       html = `<div class="result bad"><div class="title">Client lost</div><div class="why">${deal.why}</div>
@@ -697,6 +901,9 @@
 
   function finishDeal(again) {
     CTX.question = null;
+    Life.release(lastDesk);
+    callsSinceWalk++;
+    if (!again) setTimeout(maybeWalkup, 1500);
     delete modal.dataset.lock;
     closeWin(); Scene.clientLeave();
     busy = false; $("btn-client").disabled = false;
@@ -908,14 +1115,17 @@
             const before = tombCount();
             S.pitch.tombs.push(q.id); run.tombsNew.push(q.id); pxp += XP.tombstone;
             tombMsg = "🏛 Deal tombstone earned!";
+            setTimeout(() => { Scene.cheer(); Sfx.bell(); }, 300);
             setTimeout(() => { Sfx.sting(); toast("🏛 Deal tombstone earned! " + tombCount() + "/" + QUESTIONS.length, "gold"); }, 400);
             const g = GEAR.find(g => before < g.tombs && tombCount() >= g.tombs);
             if (g) setTimeout(() => { Sfx.fanfare(); toast("🎁 New gear: " + esc(g.name) + ". " + esc(g.effect), "gold"); }, 1400);
           }
           Sfx.register(); Scene.ceoCheer(); gainXP(pxp, -1); run.xp = (run.xp || 0) + pxp;
+          comboHit(); payout(-1, fees);
           html = `<div class="result good"><div class="title">Mandate won</div><div class="why">${esc(q.why)}</div><div class="money">+${money(aum)} AUM · +${money(fees)} fees · +${pxp} XP${repeat ? " (practice round: already right today)" : ""}${tombMsg ? " · " + tombMsg : ""}</div></div>`;
         } else {
           qs.wrongDay = d;
+          comboMiss();
           Sfx.thud();
           html = `<div class="result bad"><div class="title">They passed this time</div><div class="why">${esc(q.why)}</div><div class="money">No cost. This question comes back on a later day.</div></div>`;
         }
@@ -1150,6 +1360,8 @@
   // ---------- staff window ----------
   function staffWin(i) {
     const s = S.staff[i]; if (!s) return;
+    if (walkup && walkup.i === i && walkup.arrived) { Sfx.accept(); openTask(i); return; }
+    if (walkup && walkup.i === i) return;                         // on their way to you
     const t = topic(s.topic), st = topicStats(s.topic), mood = moodFor(s.topic);
     const moodTxt = mood === "sleepy" ? `😴 Sleepy: ${st.overdue} overdue concept${st.overdue > 1 ? "s" : ""} in ${t.name}. Half fees until reviewed.` : mood === "fire" ? "🔥 On fire! Bigger fees." : "🙂 Focused";
     const c = candidate(s.topic, s.v);
@@ -1189,8 +1401,10 @@
     const caps = [8, 12, 20, 30];
     openWin(`<div class="win"><div class="head"><span>Menu</span></div>
       <div class="body">
-        <div class="label">Sound</div>
+        <div class="label">Sound effects</div>
         <div class="seg"><button data-s="on" class="${S.muted ? "" : "on"}">On</button><button data-s="off" class="${S.muted ? "on" : ""}">Off</button></div>
+        <div class="label">Office sounds (keyboards, phones, footsteps)</div>
+        <div class="seg"><button data-a="on" class="${S.ambient !== false ? "on" : ""}">On</button><button data-a="off" class="${S.ambient === false ? "on" : ""}">Off</button></div>
         <button id="ceo" class="wide">Firm stats</button>
         <button id="help" class="wide">How to play</button>
         <button id="rename" class="wide">Rename firm</button>
@@ -1203,6 +1417,7 @@
       <div class="foot"><button id="x" class="primary">Close</button></div></div>`, root => {
       root.querySelector("#x").onclick = () => { Sfx.tap(); closeWin(); };
       root.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { S.muted = b.dataset.s === "off"; Sfx.setMuted(S.muted); save(); hud(); Sfx.tap(); menuWin(); });
+      root.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { S.ambient = b.dataset.a === "on"; Sfx.setAmbient(S.ambient); save(); Sfx.tap(); menuWin(); });
       root.querySelector("#ceo").onclick = ceoWin;
       root.querySelector("#help").onclick = () => helpWin(false);
       root.querySelector("#rename").onclick = () => introWin(true);
@@ -1326,6 +1541,8 @@
         <p><b>Grow the team.</b> Each CFA topic has its own desk. New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
         <p><b>Pitch Day.</b> Pitch 5 exam-style questions from your staffed desks to a big client, as often as you like. Right answers win mandates. A question you get right on two different days becomes a deal tombstone, and tombstones unlock gear.</p>
         <p><b>Level up.</b> Every right answer earns XP, with bonuses for reviews, masteries, Pitch Day wins and tombstones. Each level adds +3% to fees, and offices unlock at levels 4, 9 and 15.</p>
+        <p><b>Streaks.</b> Right answers in a row build a combo: each one plays a higher note and adds 10% to fees, up to double. Five in a row rings the deal bell. A miss just resets it.</p>
+        <p><b>Walk-ups.</b> Now and then an analyst walks over with a "!" and a quick task. The reward is shown before you start. Tap them, or the yellow note at the top.</p>
         <p><b>Spot something off?</b> Tap 📝 to leave Claude a note.</p>
         <p><b>Reminders.</b> Add the game to your home screen, then turn on Menu, Phone reminders.</p>
       </div>
@@ -1397,10 +1614,13 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-28a" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-28b" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
-    Sfx.setMuted(S.muted);
+    Sfx.setMuted(S.muted); Sfx.setAmbient(S.ambient !== false);
     refreshScene(true);
+    updateTicker();
+    Life.init({ paused: () => false, busy: () => busy || !!walkup });
+    setInterval(() => { updateTicker(); maybeWalkup(); }, 30000);
     hud();
     $("btn-client").onclick = () => { Sfx.tap(); nextClient(); };
     $("btn-hire").onclick = () => { Sfx.tap(); hireWin(); };
@@ -1416,5 +1636,5 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { hud(); refreshScene(false); morning(false); } });
   }
 
-  window.__game = { get S() { return S; }, nextClient, notesWin, QUESTIONS, MODS, renderQ, libraryWin, moduleWin, pitchWin, hireWin, pickPitch, pitchesLeft, ITEMS, pickDeal, buildDeal, grade, totals, topicStats, openSeats, EXAM_DAY };
+  window.__game = { get S() { return S; }, forceWalkup: () => maybeWalkup(true), taskItems, comboHit, comboMiss, comboMult, firmSym, feeFor, nextClient, notesWin, QUESTIONS, MODS, renderQ, libraryWin, moduleWin, pitchWin, hireWin, pickPitch, pitchesLeft, ITEMS, pickDeal, buildDeal, grade, totals, topicStats, openSeats, EXAM_DAY };
 })();

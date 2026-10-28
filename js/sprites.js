@@ -31,7 +31,10 @@ window.Sprites = (function () {
     const im = imgs["cow:" + species]; if (!im || !im.naturalWidth) return;
     const sx = (v % 4) * 32, sy = Math.floor(v / 4) * 32;
     if (o.alpha != null) ctx.globalAlpha = o.alpha;
-    ctx.drawImage(im, sx, sy, 32, 32, Math.round(x), Math.round(y), 32, 32);
+    if (o.flip) {
+      ctx.save(); ctx.translate(Math.round(x) + 32, Math.round(y)); ctx.scale(-1, 1);
+      ctx.drawImage(im, sx, sy, 32, 32, 0, 0, 32, 32); ctx.restore();
+    } else ctx.drawImage(im, sx, sy, 32, 32, Math.round(x), Math.round(y), 32, 32);
     if (o.alpha != null) ctx.globalAlpha = 1;
   }
 

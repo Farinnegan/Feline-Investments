@@ -1,10 +1,10 @@
 // Service worker: works offline once opened, and shows daily study reminders.
 // The reminder text is written here from the game's own saved summary, so it
 // can say how many reviews are actually due today.
-const CACHE = "fi-app-v13";
+const CACHE = "fi-app-v14";
 const SHELL = [
   "./", "index.html", "css/style.css", "manifest.webmanifest",
-  "js/content.js", "js/content-fsa.js", "js/store.js", "js/audio.js", "js/sprites.js", "js/scene.js", "js/feedback.js", "js/reminders.js", "js/game.js",
+  "js/content.js", "js/content-fsa.js", "js/store.js", "js/audio.js", "js/sprites.js", "js/scene.js", "js/life.js", "js/feedback.js", "js/reminders.js", "js/game.js",
   "assets/environment-sheet.png", "assets/study-props-sheet.png", "assets/progression-sheet.png", "assets/characters-sheet.png",
   "assets/clients-sheet.png", "assets/tiles.png", "assets/coworkers/black-cat-coworkers.png", "assets/coworkers/bull-coworkers.png", "assets/coworkers/wolf-coworkers.png",
   "assets/fonts/Lexend.ttf", "assets/fonts/AtkinsonHyperlegible-Regular.ttf", "assets/fonts/AtkinsonHyperlegible-Bold.ttf",
@@ -20,7 +20,9 @@ self.addEventListener("activate", e => {
 
 // network first (so updates show up right away), cache as the offline fallback
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  if (url.pathname.includes("/assets/sfx/")) return;   // sounds stream from GitHub Pages and are never kept in the offline cache
   e.respondWith(
     fetch(e.request).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }

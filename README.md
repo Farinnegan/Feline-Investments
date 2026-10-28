@@ -23,9 +23,14 @@ It's a static site. Open `index.html` through any web server, or use the GitHub 
 - `js/game.js` — game logic, spaced repetition, windows
 - `js/scene.js` — office scene, camera, client visits, effects
 - `js/sprites.js` — art layer (real sprites from `js/assets.js`, placeholder pixels otherwise)
-- `js/audio.js` — synthesized sounds
+- `js/audio.js` — sound kit: Kenney CC0 recordings in `assets/sfx` (streamed, never stored offline) plus synthesized tones
+- `js/life.js` — office life: typing, phones, coffee runs, analysts walking over to chat
 
 ## Art credits
 
 - *Pixel Life: Office Essentials* by Chris Perich — CC BY 4.0
 - *Pixel Office* by 2dPig — CC0
+
+## Sound credits
+
+- Kenney (www.kenney.nl) sound packs — CC0. See `assets/sfx/CREDITS.md`.
