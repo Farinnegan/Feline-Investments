@@ -1,5 +1,5 @@
-// Financial Statement Analysis content (tested concepts only). Built by tools/build_fsa.py from CFA-L1-FSA-Master-Reference.md.
-// IDs are permanent: progress is saved against them.
+// fsa content. Built by tools/build_cards.py from content/fsa-cards.md. Edit the card file, not this.
+// IDs are hashes of each card's name or question: progress is saved against them.
 window.TOPIC_CONTENT = window.TOPIC_CONTENT || {};
 window.TOPIC_CONTENT.fsa = {
  "topic": "fsa",
@@ -67,1030 +67,1920 @@ window.TOPIC_CONTENT.fsa = {
  ],
  "terms": [
   {
-   "id": "fsa-t13",
+   "id": "fsa2-tb82a9f",
    "m": 1,
    "g": "body",
    "term": "IASB",
-   "def": "Standard setter that writes IFRS, used in most of the world including Saudi Arabia. Decides how things are recorded but cannot force any company to follow the rules."
+   "def": "Standard setter behind the rules used across most of the world, including Saudi Arabia."
   },
   {
-   "id": "fsa-t14",
+   "id": "fsa2-tf6c384",
    "m": 1,
    "g": "body",
    "term": "FASB",
-   "def": "Standard setter that writes US GAAP. Writes the rulebook only; it has no power to enforce it."
+   "def": "Standard setter behind the rules used in the United States."
   },
   {
-   "id": "fsa-t15",
+   "id": "fsa2-t920a25",
    "m": 1,
    "g": "body",
    "term": "SEC",
-   "def": "US regulator that requires listed companies to follow the standards and file reports. Carries out SOX and oversees the PCAOB, so it is the body that requires the internal control report."
+   "def": "US regulator that forces listed companies to file and requires the internal control report."
   },
   {
-   "id": "fsa-t16",
-   "m": 1,
-   "g": "body",
-   "term": "Sarbanes-Oxley (2002)",
-   "def": "US law passed after Enron and WorldCom. Created the PCAOB to oversee auditors and requires management to report on whether its internal control over financial reporting works, with the auditor confirming it."
-  },
-  {
-   "id": "fsa-t17",
+   "id": "fsa2-t12e069",
    "m": 1,
    "g": "body",
    "term": "PCAOB",
-   "def": "Public Company Accounting Oversight Board: oversees auditors. Created by Sarbanes-Oxley."
+   "def": "US board that oversees the auditors of public companies."
   },
   {
-   "id": "fsa-t18",
+   "id": "fsa2-t0cc606",
+   "m": 1,
+   "g": "body",
+   "term": "Sarbanes-Oxley (2002)",
+   "def": "US law passed after Enron that created the public-company audit overseer."
+  },
+  {
+   "id": "fsa2-t907019",
    "m": 1,
    "g": "audit",
    "term": "Internal controls",
-   "def": "The company's own processes for making sure transactions are recorded correctly (approvals, reconciliations, segregation of duties). Management is responsible for them, not the auditor."
+   "def": "A company's own processes for recording transactions correctly, owned by management."
   },
   {
-   "id": "fsa-t177",
+   "id": "fsa2-tfdc4ee",
    "m": 1,
    "g": "audit",
    "term": "Audit opinion",
-   "def": "An independent accounting firm's opinion on whether the statements are fairly presented under the accounting standards."
+   "def": "An outside firm's verdict on whether the statements are fairly presented."
   },
   {
-   "id": "fsa-t21",
+   "id": "fsa2-tfdbd4c",
    "m": 1,
    "g": "opinion",
    "term": "Unqualified opinion",
-   "def": "Clean (unmodified): the statements are fairly presented with no material errors."
+   "def": "The clean verdict: fairly presented, no material errors."
   },
   {
-   "id": "fsa-t22",
+   "id": "fsa2-tb7ee03",
    "m": 1,
    "g": "opinion",
    "term": "Qualified opinion",
-   "def": "Fairly presented except for specific exceptions to the accounting principles, which the auditor explains. The problem is real but contained."
+   "def": "Fairly presented apart from specific, contained exceptions the auditor names."
   },
   {
-   "id": "fsa-t23",
+   "id": "fsa2-t912916",
    "m": 1,
    "g": "opinion",
    "term": "Adverse opinion",
-   "def": "The statements are not fairly presented; they materially depart from the standards. A severe red flag."
+   "def": "The statements as a whole are unreliable and depart materially from the rules."
   },
   {
-   "id": "fsa-t24",
+   "id": "fsa2-t5c85e4",
    "m": 1,
    "g": "opinion",
    "term": "Disclaimer of opinion",
-   "def": "The auditor can't form an opinion at all, usually because it couldn't get enough evidence (a scope limitation)."
+   "def": "The auditor could not gather enough evidence to judge at all."
   },
   {
-   "id": "fsa-t178",
+   "id": "fsa2-t783358",
    "m": 2,
    "g": "rev",
    "term": "Accrual accounting",
-   "def": "Revenue is recorded when earned and expenses when incurred, not when cash moves."
+   "def": "Recording revenue when earned and expenses when incurred, regardless of cash timing."
   },
   {
-   "id": "fsa-t29",
+   "id": "fsa2-t606964",
    "m": 2,
    "g": "rev",
    "term": "Unearned (deferred) revenue",
-   "def": "Cash received before delivery. Recorded as a liability, not revenue: cash (asset) up, unearned revenue (liability) up. Revenue is recognized later, as delivered."
+   "def": "Cash collected before delivery, owed back as a service, so booked as a liability."
   },
   {
-   "id": "fsa-t28",
+   "id": "fsa2-t957c21",
    "m": 2,
    "g": "rev",
-   "term": "Input method (revenue over time)",
-   "def": "For long contracts, measures progress by costs incurred so far versus total estimated costs. Spent 40% of expected cost, recognize 40% of contract revenue."
+   "term": "Input method",
+   "def": "Measuring a long contract's progress by cost spent against total cost expected."
   },
   {
-   "id": "fsa-t179",
-   "m": 2,
-   "g": "rev",
-   "term": "Revised cost estimate on an over-time contract",
-   "def": "Recompute the cumulative percentage complete with the new estimate, find total revenue earned to date, and subtract what earlier years already recognized. Earlier years are not restated."
-  },
-  {
-   "id": "fsa-t36",
-   "m": 2,
-   "g": "change",
-   "term": "Change in accounting policy",
-   "def": "Switching between allowed methods. Applied retrospectively: all prior periods shown are restated, unless impractical."
-  },
-  {
-   "id": "fsa-t37",
-   "m": 2,
-   "g": "change",
-   "term": "Change in accounting estimate",
-   "def": "Revising a judgment within the same method (useful life, salvage value, bad debt rate). Applied prospectively: current and future periods only."
-  },
-  {
-   "id": "fsa-t180",
+   "id": "fsa2-t649da8",
    "m": 2,
    "g": "eps",
    "term": "Earnings per share (EPS)",
-   "def": "Net income available to common shareholders divided by the number of common shares."
+   "def": "Profit belonging to common owners, divided by the common stock count."
   },
   {
-   "id": "fsa-t41",
+   "id": "fsa2-tae5279",
    "m": 2,
    "g": "eps",
    "term": "Weighted average shares outstanding (WASO)",
-   "def": "Shares weighted by how long they were outstanding during the year."
+   "def": "The stock count, each block scaled by the slice of the year it existed."
   },
   {
-   "id": "fsa-t181",
+   "id": "fsa2-t1d8615",
    "m": 2,
    "g": "eps",
    "term": "Diluted EPS",
-   "def": "What EPS would be if every security that could become common stock did so. Shows the worst-case dilution for current shareholders."
+   "def": "The worst-case per-share figure if every convertible security turned into stock."
   },
   {
-   "id": "fsa-t42",
-   "m": 2,
-   "g": "eps",
-   "term": "If-converted method (convertible debt)",
-   "def": "Assume the bonds converted at the start of the year: add back the bond interest after tax to the numerator, and add the conversion shares to the denominator."
-  },
-  {
-   "id": "fsa-t45",
+   "id": "fsa2-t8cb693",
    "m": 2,
    "g": "eps",
    "term": "Antidilutive security",
-   "def": "A security whose conversion would increase EPS. Left out: diluted EPS can never be higher than basic EPS."
+   "def": "A convertible whose conversion would lift per-share profit, so it is ignored."
   },
   {
-   "id": "fsa-t182",
+   "id": "fsa2-tb1f7bd",
+   "m": 2,
+   "g": "eps",
+   "term": "If-converted method",
+   "def": "The way convertible bonds are folded into diluted per-share profit."
+  },
+  {
+   "id": "fsa2-t48bff8",
+   "m": 2,
+   "g": "change",
+   "term": "Change in accounting policy",
+   "def": "Moving from one permitted method to another permitted method."
+  },
+  {
+   "id": "fsa2-t6d0ca9",
+   "m": 2,
+   "g": "change",
+   "term": "Change in accounting estimate",
+   "def": "Revising a judgment inside the same method, such as useful life."
+  },
+  {
+   "id": "fsa2-ted3213",
    "m": 3,
    "g": "acq",
    "term": "Retained earnings",
-   "def": "Cumulative profits kept rather than paid out as dividends. Grows by net income, shrinks by dividends declared."
+   "def": "The running total of profits a company kept instead of paying out."
   },
   {
-   "id": "fsa-t183",
+   "id": "fsa2-ta76b7e",
    "m": 3,
    "g": "acq",
    "term": "Acquisition method",
-   "def": "The buyer records each identifiable asset and liability of the target at fair value on the purchase date."
+   "def": "Recording a purchased business by booking its assets and liabilities at fair value."
   },
   {
-   "id": "fsa-t184",
+   "id": "fsa2-t7b68d1",
    "m": 3,
    "g": "acq",
    "term": "Identifiable assets",
-   "def": "Assets that can be separated or arise from legal rights (property, patents, licenses, brands, customer lists). Recorded individually."
+   "def": "Things that can be sold separately or come from legal rights, booked one by one."
   },
   {
-   "id": "fsa-t60",
+   "id": "fsa2-t0c6ead",
    "m": 3,
    "g": "acq",
    "term": "Goodwill",
-   "def": "The part of the purchase price left after allocating fair value to identifiable assets and liabilities. An asset, not amortized, tested for impairment at least yearly. Never a gain."
+   "def": "The leftover of a purchase price once every separable asset is valued."
   },
   {
-   "id": "fsa-t62",
-   "m": 3,
-   "g": "acq",
-   "term": "Goodwill analyst adjustment",
-   "def": "Remove goodwill from total assets, remove the same amount from equity, and exclude goodwill impairment losses from the income statement."
-  },
-  {
-   "id": "fsa-t55",
+   "id": "fsa2-td1d19b",
    "m": 3,
    "g": "meas",
    "term": "Available-for-sale securities",
-   "def": "US GAAP: debt securities the company might sell before maturity. Carried at fair value, with unrealized gains and losses in OCI."
+   "def": "Debt the holder might sell before it matures."
   },
   {
-   "id": "fsa-t54",
+   "id": "fsa2-t96ddbd",
    "m": 3,
    "g": "meas",
    "term": "Held-to-maturity securities",
-   "def": "US GAAP: debt the company intends to hold to maturity. Carried at amortized cost."
+   "def": "Debt the holder means to keep until it matures."
   },
   {
-   "id": "fsa-t185",
+   "id": "fsa2-ta3b718",
    "m": 3,
    "g": "meas",
-   "term": "Patents and other finite-life intangibles",
-   "def": "Carried at amortized cost: historical cost minus accumulated amortization. Plain historical cost is wrong."
+   "term": "Finite-life intangibles",
+   "def": "Legal rights that expire, such as a patent."
   },
   {
-   "id": "fsa-t186",
-   "m": 3,
-   "g": "meas",
-   "term": "LIFO inventory (US GAAP measurement)",
-   "def": "Carried at the lower of cost or market, so it gets written down if its value falls."
-  },
-  {
-   "id": "fsa-t187",
+   "id": "fsa2-t596f39",
    "m": 3,
    "g": "liq",
-   "term": "Gap between current and quick ratios",
-   "def": "The bigger the gap, the more of current assets is inventory. If sales fall sharply, bills must be paid from quick assets alone."
+   "term": "Current ratio",
+   "def": "Short-term assets set against short-term bills."
   },
   {
-   "id": "fsa-t65",
+   "id": "fsa2-t62450b",
+   "m": 3,
+   "g": "liq",
+   "term": "Quick ratio",
+   "def": "The same test with the slow-to-sell items stripped out."
+  },
+  {
+   "id": "fsa2-t8897c4",
+   "m": 3,
+   "g": "liq",
+   "term": "Financial leverage ratio",
+   "def": "How many dollars of assets ride on each dollar of equity."
+  },
+  {
+   "id": "fsa2-t0f2f03",
    "m": 4,
    "g": "cfo",
    "term": "Cash flow from operations (CFO)",
-   "def": "Cash generated by the core business. Under the indirect method it starts from net income and adjusts for non-cash items and working capital changes."
+   "def": "The money a business throws off from its day-to-day trading."
   },
   {
-   "id": "fsa-t71",
-   "m": 4,
-   "g": "cfo",
-   "term": "Working capital effects on CFO",
-   "def": "Operating current asset up, CFO down (receivables or inventory up). Operating current liability up, CFO up (payables up)."
-  },
-  {
-   "id": "fsa-t188",
-   "m": 4,
-   "g": "cfo",
-   "term": "More credit sales, same total sales",
-   "def": "Receivables pile up and CFO falls even though net income doesn't change. A big CFO drop with flat sales and net income is the classic sign."
-  },
-  {
-   "id": "fsa-t189",
-   "m": 4,
-   "g": "cfo",
-   "term": "Shifting from trade payables to bank debt",
-   "def": "Means paying suppliers sooner, which lowers CFO. Moving toward more trade payables raises CFO."
-  },
-  {
-   "id": "fsa-t75",
-   "m": 4,
-   "g": "cfo",
-   "term": "Taxes paid (classification)",
-   "def": "US GAAP: all income taxes paid are operating. IFRS: operating by default, but tax tied to an investing or financing transaction can be classified there."
-  },
-  {
-   "id": "fsa-t78",
+   "id": "fsa2-t6d46bd",
    "m": 5,
    "g": "fcff",
    "term": "Free cash flow to the firm (FCFF)",
-   "def": "Cash left over for all providers of capital, debt and equity, after operating costs and needed investments."
+   "def": "The money left for every provider of capital once needs are met."
   },
   {
-   "id": "fsa-t190",
+   "id": "fsa2-td824b0",
    "m": 5,
    "g": "fcff",
    "term": "Non-cash charges",
-   "def": "Expenses that reduce net income without using cash, mainly depreciation and amortization. Added back."
+   "def": "Expenses that cut profit without any money moving, mainly depreciation."
   },
   {
-   "id": "fsa-t191",
-   "m": 5,
-   "g": "fcff",
-   "term": "After-tax interest add-back",
-   "def": "Interest goes to debt holders, so FCFF adds it back, after tax, because the interest expense had saved taxes."
-  },
-  {
-   "id": "fsa-t192",
+   "id": "fsa2-ta58daa",
    "m": 5,
    "g": "fcff",
    "term": "Fixed capital investment (FCInv)",
-   "def": "Net capital expenditure on long-term assets. Subtracted."
+   "def": "Net spending on long-term assets during the year."
   },
   {
-   "id": "fsa-t193",
+   "id": "fsa2-t520e5b",
    "m": 5,
    "g": "fcff",
    "term": "Working capital investment (WCInv)",
-   "def": "The increase in working capital during the year. Subtracted."
+   "def": "The year's rise in receivables and inventory net of payables."
   },
   {
-   "id": "fsa-t80",
+   "id": "fsa2-t132fa9",
    "m": 6,
    "g": "flow",
-   "term": "Cost flow methods",
-   "def": "FIFO sends the oldest costs to COGS, LIFO the newest, weighted average the average. LIFO is allowed only under US GAAP."
+   "term": "FIFO",
+   "def": "The method that sends the oldest costs into cost of goods sold."
   },
   {
-   "id": "fsa-t86",
+   "id": "fsa2-tc72cd2",
    "m": 6,
    "g": "flow",
-   "term": "LIFO under rising prices",
-   "def": "Highest COGS, lowest gross margin, lowest ending inventory, lowest taxes."
+   "term": "LIFO",
+   "def": "The method that sends the newest costs into cost of goods sold."
   },
   {
-   "id": "fsa-t87",
+   "id": "fsa2-te3b091",
    "m": 6,
    "g": "flow",
-   "term": "FIFO under rising prices",
-   "def": "Lowest COGS, highest gross margin, highest ending inventory."
+   "term": "Weighted average cost",
+   "def": "The method that blends every purchase into one blended figure per unit."
   },
   {
-   "id": "fsa-t88",
-   "m": 6,
-   "g": "flow",
-   "term": "Weighted average under rising prices",
-   "def": "Sits in the middle on everything."
-  },
-  {
-   "id": "fsa-t194",
-   "m": 6,
-   "g": "flow",
-   "term": "Ratio effects of lower inventory",
-   "def": "Lower current ratio and working capital; higher inventory turnover; fewer days of inventory and a shorter cash conversion cycle; higher debt-to-assets; higher working capital turnover."
-  },
-  {
-   "id": "fsa-t84",
-   "m": 6,
-   "g": "meas",
-   "term": "Net realizable value (NRV)",
-   "def": "Estimated selling price minus the costs to complete and sell."
-  },
-  {
-   "id": "fsa-t81",
-   "m": 6,
-   "g": "meas",
-   "term": "IFRS inventory measurement",
-   "def": "Lower of cost and NRV. A write-down can be reversed if value recovers, up to original cost."
-  },
-  {
-   "id": "fsa-t82",
-   "m": 6,
-   "g": "meas",
-   "term": "US GAAP inventory measurement (FIFO, weighted average)",
-   "def": "Lower of cost and NRV. Write-downs cannot be reversed."
-  },
-  {
-   "id": "fsa-t83",
-   "m": 6,
-   "g": "meas",
-   "term": "Lower of cost or market (US GAAP LIFO and retail)",
-   "def": "Market = replacement cost, capped at NRV and floored at NRV minus a normal profit margin. That floor is US GAAP's, not an IFRS definition."
-  },
-  {
-   "id": "fsa-t195",
-   "m": 6,
-   "g": "wd",
-   "term": "Reversing a write-down",
-   "def": "IFRS allows it if value recovers, up to original cost. US GAAP does not allow reversals."
-  },
-  {
-   "id": "fsa-t85",
-   "m": 6,
-   "g": "wd",
-   "term": "Agricultural inventory",
-   "def": "Both IFRS and US GAAP allow it at NRV or fair value less costs to sell, even above cost."
-  },
-  {
-   "id": "fsa-t92",
-   "m": 6,
-   "g": "wd",
-   "term": "Effect of a write-down on ratios",
-   "def": "Profitability, liquidity and solvency ratios get worse, but activity ratios improve because their denominators shrink."
-  },
-  {
-   "id": "fsa-t90",
+   "id": "fsa2-tee7a0c",
    "m": 6,
    "g": "lifo",
    "term": "LIFO reserve",
-   "def": "FIFO inventory minus LIFO inventory. US LIFO companies must disclose it."
+   "def": "The disclosed gap between a firm's stated inventory and the first-in-first-out figure."
   },
   {
-   "id": "fsa-t91",
+   "id": "fsa2-tde8ede",
    "m": 6,
    "g": "lifo",
    "term": "LIFO liquidation",
-   "def": "Selling more units than bought dips into old, cheap layers, so margins and profit jump for a year. Not sustainable; US GAAP requires disclosure. A sharp fall in units is the signal."
+   "def": "The one-off profit bump when a firm sells more units than it buys and digs into old layers."
   },
   {
-   "id": "fsa-t196",
-   "m": 7,
-   "g": "model",
-   "term": "Cost model",
-   "def": "Historical cost minus accumulated depreciation (or amortization) and impairment."
+   "id": "fsa2-t1a7f02",
+   "m": 6,
+   "g": "meas",
+   "term": "Net realizable value (NRV)",
+   "def": "Expected selling price less the cost to finish and sell."
   },
   {
-   "id": "fsa-t197",
-   "m": 7,
-   "g": "model",
-   "term": "Revaluation model",
-   "def": "Fair value at the revaluation date minus later depreciation and impairment. IFRS allows it or the cost model for PP&E and intangibles; US GAAP allows only the cost model."
-  },
-  {
-   "id": "fsa-t103",
-   "m": 7,
-   "g": "model",
-   "term": "Fair value model",
-   "def": "IFRS model for investment property, with all changes in profit or loss. Not the model for intangibles."
-  },
-  {
-   "id": "fsa-t108",
+   "id": "fsa2-t358c7c",
    "m": 7,
    "g": "disp",
    "term": "Held for sale",
-   "def": "Assets planned to be sold soon. Depreciation stops; carried at the lower of carrying amount and fair value less costs to sell."
+   "def": "An asset the firm plans to sell soon rather than keep using."
   },
   {
-   "id": "fsa-t109",
-   "m": 7,
-   "g": "disp",
-   "term": "Disposed of other than by sale",
-   "def": "Spin-off, abandonment or swap. Stays held for use until it leaves, and depreciation continues."
-  },
-  {
-   "id": "fsa-t198",
+   "id": "fsa2-tda4e38",
    "m": 7,
    "g": "imp",
    "term": "Impairment",
-   "def": "A write-down when an asset's carrying amount is more than it can recover."
+   "def": "A write-down when an asset's book value tops what it can recover."
   },
   {
-   "id": "fsa-t106",
+   "id": "fsa2-tc25176",
    "m": 7,
    "g": "imp",
    "term": "Recoverable amount",
-   "def": "The higher of fair value less costs to sell and value in use."
+   "def": "The better of two exit figures: a quick sale or continued use."
   },
   {
-   "id": "fsa-t199",
+   "id": "fsa2-t766d85",
    "m": 7,
    "g": "imp",
    "term": "Fair value less costs to sell",
-   "def": "What you'd get by selling the asset, net of selling costs."
+   "def": "The net proceeds from selling the asset."
   },
   {
-   "id": "fsa-t107",
+   "id": "fsa2-t8b9619",
    "m": 7,
    "g": "imp",
    "term": "Value in use",
-   "def": "The present value of the cash flows from keeping and using the asset."
+   "def": "The present value of cash from keeping and using the asset."
   },
   {
-   "id": "fsa-t104",
+   "id": "fsa2-t9777b4",
    "m": 7,
-   "g": "imp",
-   "term": "IFRS impairment",
-   "def": "Loss = carrying amount minus recoverable amount, in the income statement. Reversals allowed if value recovers."
+   "g": "model",
+   "term": "Cost model",
+   "def": "Carrying an asset at what was paid, less the wear and write-downs booked against it."
   },
   {
-   "id": "fsa-t200",
+   "id": "fsa2-td4dcf3",
    "m": 7,
-   "g": "fv",
-   "term": "Fair value through an income approach",
-   "def": "Discounts expected cash flows. A longer useful life and a higher salvage value both raise fair value."
+   "g": "model",
+   "term": "Revaluation model",
+   "def": "Carrying PP&E at its latest appraised value, less later wear and write-downs."
   },
   {
-   "id": "fsa-t201",
+   "id": "fsa2-tc9f1b0",
    "m": 7,
-   "g": "fv",
-   "term": "Fair value and goodwill",
-   "def": "Higher fair values for identifiable assets leave less goodwill. A buyer wanting minimal goodwill prefers assumptions that raise asset values."
+   "g": "model",
+   "term": "Fair value model",
+   "def": "The IFRS approach for investment property, with every change hitting profit."
   },
   {
-   "id": "fsa-t202",
+   "id": "fsa2-t2c7bf1",
    "m": 7,
    "g": "rd",
    "term": "Research",
-   "def": "The search for new knowledge. Always expensed."
+   "def": "The hunt for new knowledge, before any specific product is in view."
   },
   {
-   "id": "fsa-t203",
+   "id": "fsa2-t051344",
    "m": 7,
    "g": "rd",
    "term": "Development",
-   "def": "Applying knowledge to a specific product. IFRS capitalizes it once criteria are met; US GAAP generally expenses it."
+   "def": "Turning that knowledge into a specific, identified product."
   },
   {
-   "id": "fsa-t204",
-   "m": 7,
-   "g": "rd",
-   "term": "Capitalizing development and EBITDA",
-   "def": "Capitalized costs become amortization, which EBITDA excludes, so the capitalizer has higher EBITDA than an identical company that expenses."
-  },
-  {
-   "id": "fsa-t205",
-   "m": 7,
-   "g": "rd",
-   "term": "EBITDA multiple",
-   "def": "Value divided by EBITDA. Same market value and lower EBITDA means a higher multiple."
-  },
-  {
-   "id": "fsa-t206",
+   "id": "fsa2-tf69e82",
    "m": 8,
    "g": "pen",
    "term": "Defined benefit (DB) pension plan",
-   "def": "The employer promises a specific retirement benefit and bears the risk that the plan's investments fall short."
+   "def": "An arrangement where the employer promises a set payout and bears the investment risk."
   },
   {
-   "id": "fsa-t121",
+   "id": "fsa2-td17924",
    "m": 8,
    "g": "pen",
    "term": "Net pension liability (asset)",
-   "def": "PV of the defined benefit obligation minus the fair value of plan assets. Underfunded means a liability."
+   "def": "The shortfall or surplus between what a plan owes and what it holds."
   },
   {
-   "id": "fsa-t122",
+   "id": "fsa2-t4f75d4",
    "m": 8,
    "g": "pen",
-   "term": "Service cost (IFRS pension)",
-   "def": "PV of the extra benefit earned by another year of work, including past service cost. Goes to P&L."
+   "term": "Service cost",
+   "def": "The value of the extra pension earned by one more year of work."
   },
   {
-   "id": "fsa-t207",
+   "id": "fsa2-t985ec1",
    "m": 8,
    "g": "pen",
    "term": "Past service cost",
-   "def": "Arises when a plan amendment changes benefits for service already given. Reported in P&L under IFRS."
+   "def": "The pension change created when a plan amendment rewrites benefits already earned."
   },
   {
-   "id": "fsa-t123",
+   "id": "fsa2-tc45e0c",
    "m": 8,
    "g": "pen",
-   "term": "Net interest (IFRS pension)",
-   "def": "The discount rate applied to the net pension liability or asset at the start of the year. Goes to P&L."
+   "term": "Net interest",
+   "def": "The start-of-year discount rate applied to the plan's net balance."
   },
   {
-   "id": "fsa-t124",
+   "id": "fsa2-tb7100f",
    "m": 8,
    "g": "pen",
-   "term": "Remeasurements (IFRS pension)",
-   "def": "Actuarial gains and losses plus actual return on plan assets minus the return in net interest. Go to OCI, never recycled."
+   "term": "Remeasurements",
+   "def": "The pension items parked in OCI and never moved back to profit."
   },
   {
-   "id": "fsa-t125",
+   "id": "fsa2-tf3fc7e",
    "m": 8,
    "g": "pen",
    "term": "Actuarial gains and losses",
-   "def": "Come from changing assumptions such as life expectancy, turnover, retirement age or salary growth. Longer life expectancy is an actuarial loss in OCI."
+   "def": "The swings from changing assumptions such as how long retirees live."
   },
   {
-   "id": "fsa-t114",
-   "m": 8,
-   "g": "lease",
-   "term": "Lessee advantages of leasing",
-   "def": "Often less costly financing (little or no down payment, often lower fixed rates), less restrictive provisions, less exposure to obsolescence."
-  },
-  {
-   "id": "fsa-t129",
+   "id": "fsa2-t57a7ce",
    "m": 9,
    "g": "inc",
-   "term": "Accounting profit (pretax income)",
-   "def": "Profit on the income statement, under accounting rules."
+   "term": "Accounting profit",
+   "def": "The pretax figure on the income statement, set by the book rules."
   },
   {
-   "id": "fsa-t128",
+   "id": "fsa2-t75bd00",
    "m": 9,
    "g": "inc",
    "term": "Taxable income",
-   "def": "Profit on the tax return, under tax rules."
+   "def": "Profit figured under the tax rules, shown on the return."
   },
   {
-   "id": "fsa-t132",
+   "id": "fsa2-tfff7f0",
    "m": 9,
    "g": "base",
    "term": "Carrying amount",
-   "def": "An asset's or liability's value on the balance sheet."
+   "def": "An item's value as the balance sheet reports it."
   },
   {
-   "id": "fsa-t133",
+   "id": "fsa2-td2b62d",
    "m": 9,
    "g": "base",
    "term": "Tax base",
-   "def": "The value the tax authority assigns: the amount still deductible for tax in future."
+   "def": "An item's value as the tax authority reckons it, still deductible in future."
   },
   {
-   "id": "fsa-t134",
-   "m": 9,
-   "g": "diff",
-   "term": "Temporary difference",
-   "def": "A carrying amount vs tax base difference that will reverse over time. Creates deferred tax."
-  },
-  {
-   "id": "fsa-t135",
-   "m": 9,
-   "g": "diff",
-   "term": "Permanent difference",
-   "def": "Never reverses (fines, non-deductible premiums, untaxed income). Creates no deferred tax; only makes the effective rate differ from the statutory rate."
-  },
-  {
-   "id": "fsa-t136",
+   "id": "fsa2-t32909d",
    "m": 9,
    "g": "dt",
    "term": "Deferred tax liability (DTL)",
-   "def": "Accounting profit above taxable income now: less tax today, more later. For an asset, carrying amount above tax base."
+   "def": "Tax postponed to later years because the books show profit before the return does."
   },
   {
-   "id": "fsa-t137",
+   "id": "fsa2-t09c449",
    "m": 9,
    "g": "dt",
    "term": "Deferred tax asset (DTA)",
-   "def": "Taxable income above accounting profit now: more tax today, less later. For an asset, carrying amount below tax base."
+   "def": "Tax prepaid now that returns as a saving in later years."
   },
   {
-   "id": "fsa-t138",
+   "id": "fsa2-tf57a00",
    "m": 9,
    "g": "dt",
    "term": "Valuation allowance",
-   "def": "US GAAP reduction to a DTA when it's more likely than not the company won't earn enough future taxable income to use it."
+   "def": "A US GAAP cut to a deferred tax asset unlikely to be used."
   },
   {
-   "id": "fsa-t140",
+   "id": "fsa2-t1f5d94",
    "m": 9,
-   "g": "dt",
-   "term": "Deferred tax follows the item",
-   "def": "Deferred tax is recorded wherever the underlying change was recorded."
+   "g": "diff",
+   "term": "Temporary difference",
+   "def": "A books-versus-tax gap that reverses over time."
   },
   {
-   "id": "fsa-t208",
+   "id": "fsa2-t7fcdb0",
    "m": 9,
-   "g": "dt",
-   "term": "Revaluation down and deferred tax",
-   "def": "Books revalued down, tax base unchanged: carrying amount below tax base creates a DTA = decrease × tax rate."
+   "g": "diff",
+   "term": "Permanent difference",
+   "def": "A books-versus-tax gap that never reverses."
   },
   {
-   "id": "fsa-t148",
+   "id": "fsa2-t8e5584",
    "m": 10,
    "g": "cons",
    "term": "Conservative accounting",
-   "def": "Choices that lower current reported earnings and position, and may raise them later (later revenue, bigger provisions, faster depreciation)."
+   "def": "Choices that hold earnings down now and may release them later."
   },
   {
-   "id": "fsa-t149",
+   "id": "fsa2-t22d1d1",
    "m": 10,
    "g": "cons",
    "term": "Aggressive accounting",
-   "def": "Choices that raise current earnings or position, and may lower them later (early revenue, capitalizing costs, longer useful lives)."
+   "def": "Choices that push earnings up now and may claw them back later."
   },
   {
-   "id": "fsa-t209",
+   "id": "fsa2-tcc6a37",
    "m": 10,
    "g": "cons",
    "term": "Sustainable earnings",
-   "def": "Earnings expected to continue. One-time gains aren't sustainable; conservative accounting alone only moves earnings later."
+   "def": "The portion of reported profit expected to keep recurring, not one-off."
   },
   {
-   "id": "fsa-t210",
-   "m": 10,
-   "g": "cons",
-   "term": "Revenue timing and conservatism",
-   "def": "Most aggressive: all revenue at the start. Middle: as costs are incurred. Most conservative: only on completion."
-  },
-  {
-   "id": "fsa-t158",
+   "id": "fsa2-tb6b7c3",
    "m": 11,
    "g": "dup",
    "term": "DuPont analysis",
-   "def": "Splits ROE to show whether it comes from profitability, efficiency or borrowing."
+   "def": "The split of return on equity into margin, efficiency and borrowing."
   },
   {
-   "id": "fsa-t160",
+   "id": "fsa2-tbfee70",
    "m": 11,
    "g": "dup",
    "term": "Tax burden",
-   "def": "NI / EBT = 1 − effective tax rate. A lower tax rate means a higher ratio, so higher ROE."
+   "def": "The DuPont piece that keeps whatever profit survives tax."
   },
   {
-   "id": "fsa-t211",
+   "id": "fsa2-t9d51c5",
    "m": 11,
    "g": "dup",
    "term": "Interest burden",
-   "def": "EBT / EBIT. Falls when interest expense rises."
+   "def": "The DuPont piece that keeps whatever pretax profit survives financing costs."
   },
   {
-   "id": "fsa-t212",
-   "m": 11,
-   "g": "dup",
-   "term": "Lower DSO and ROE",
-   "def": "Smaller receivables mean higher asset turnover and higher ROE."
-  },
-  {
-   "id": "fsa-t159",
+   "id": "fsa2-tcfcf67",
    "m": 11,
    "g": "dup",
    "term": "Sustainable growth rate",
-   "def": "How fast a company can grow using only retained earnings, without changing its capital structure."
+   "def": "The pace a firm can grow on retained earnings alone, capital structure fixed."
   },
   {
-   "id": "fsa-t213",
+   "id": "fsa2-t0d2833",
    "m": 11,
    "g": "solv",
    "term": "Solvency",
-   "def": "The ability to meet long-term obligations."
+   "def": "The ability to meet obligations that fall due over the long run."
   },
   {
-   "id": "fsa-t155",
+   "id": "fsa2-t38c5c5",
    "m": 11,
    "g": "solv",
    "term": "Leverage ratios",
-   "def": "Come from the balance sheet: how much is financed with debt. Higher debt-based leverage means more financial risk and weaker solvency."
+   "def": "Balance-sheet measures of how much is financed with debt."
   },
   {
-   "id": "fsa-t156",
+   "id": "fsa2-t859223",
    "m": 11,
    "g": "solv",
    "term": "Coverage ratios",
-   "def": "Come from the income statement and cash flow statement: whether the company can pay its debt costs."
+   "def": "Income and cash-flow measures of the ability to service debt."
   },
   {
-   "id": "fsa-t165",
-   "m": 12,
-   "g": "rev12",
-   "term": "Organic growth",
-   "def": "Revenue growth from the existing business: volume plus price/mix, together."
-  },
-  {
-   "id": "fsa-t166",
-   "m": 12,
-   "g": "rev12",
-   "term": "Scope changes",
-   "def": "Growth from acquisitions or losses from divestitures, shown separately from organic growth."
-  },
-  {
-   "id": "fsa-t214",
-   "m": 12,
-   "g": "rev12",
-   "term": "FX impact",
-   "def": "Revenue change from currency moves, shown separately from organic growth."
-  },
-  {
-   "id": "fsa-t162",
+   "id": "fsa2-t1c90ad",
    "m": 12,
    "g": "mod",
    "term": "Sales-based pro forma model",
-   "def": "Projects revenue first, then each expense and balance sheet item as a percentage of revenue, using historical percentages unless there's a reason to change."
+   "def": "A forecast that projects revenue first, then ties each line to revenue."
   },
   {
-   "id": "fsa-t215",
+   "id": "fsa2-tb0b4db",
    "m": 12,
    "g": "mod",
-   "term": "Net working capital (NWC) in a model",
-   "def": "Often forecast as a percentage of sales. When revenue grows, NWC grows with it, and that increase uses cash."
+   "term": "Net working capital in a model",
+   "def": "The forecast item that grows with sales and eats cash as it grows."
+  },
+  {
+   "id": "fsa2-tf0a5be",
+   "m": 12,
+   "g": "rev12",
+   "term": "Organic growth",
+   "def": "The revenue gain a firm makes from the business it already owns."
+  },
+  {
+   "id": "fsa2-t895d38",
+   "m": 12,
+   "g": "rev12",
+   "term": "Scope changes",
+   "def": "Revenue moves from buying or selling businesses, shown apart from organic growth."
+  },
+  {
+   "id": "fsa2-t9cce03",
+   "m": 12,
+   "g": "rev12",
+   "term": "FX impact",
+   "def": "Revenue moves from currency, shown apart from organic growth."
+  }
+ ],
+ "rules": [
+  {
+   "id": "fsa2-r138e3c",
+   "m": 1,
+   "g": "body",
+   "q": "Who requires a public company's SOX internal control report?",
+   "a": "The SEC",
+   "x": [
+    "The FASB",
+    "The PCAOB",
+    "The external auditor"
+   ]
+  },
+  {
+   "id": "fsa2-r30613b",
+   "m": 1,
+   "g": "opinion",
+   "q": "The auditor cites certain exceptions to the accounting principles. Which opinion?",
+   "a": "Qualified",
+   "x": [
+    "Adverse",
+    "Disclaimer",
+    "Unqualified"
+   ]
+  },
+  {
+   "id": "fsa2-raa51d9",
+   "m": 2,
+   "g": "change",
+   "q": "How is a change in accounting policy applied?",
+   "a": "Retrospectively, restating prior periods shown",
+   "x": [
+    "Prospectively, current and future only",
+    "Only in the current year",
+    "To future periods once impractical"
+   ]
+  },
+  {
+   "id": "fsa2-r2b15f7",
+   "m": 2,
+   "g": "change",
+   "q": "How is a change in accounting estimate applied?",
+   "a": "Prospectively, current and future only",
+   "x": [
+    "Retrospectively, restating prior periods",
+    "By restating the earliest year only",
+    "The same way as a policy change"
+   ]
+  },
+  {
+   "id": "fsa2-r7e64f0",
+   "m": 2,
+   "g": "eps",
+   "q": "A convertible security raises calculated EPS above basic. What do you report?",
+   "a": "Basic EPS, the security is antidilutive",
+   "x": [
+    "The higher diluted figure",
+    "The average of the two",
+    "Basic, then add the interest back"
+   ]
+  },
+  {
+   "id": "fsa2-r900aef",
+   "m": 2,
+   "g": "eps",
+   "q": "Adding back convertible-bond interest for diluted EPS, you add it:",
+   "a": "After tax",
+   "x": [
+    "Before tax",
+    "At the full coupon with no tax",
+    "Net of preferred dividends"
+   ]
+  },
+  {
+   "id": "fsa2-r6d85a1",
+   "m": 2,
+   "g": "rev",
+   "q": "A customer pays in advance for next year's service. The company records:",
+   "a": "A liability",
+   "x": [
+    "Revenue now",
+    "An asset only, no liability",
+    "Deferred expense"
+   ]
+  },
+  {
+   "id": "fsa2-r6e4f46",
+   "m": 2,
+   "g": "rev",
+   "q": "A contract's total cost estimate rises mid-way. This year's revenue is:",
+   "a": "Cumulative revenue to date minus prior years'",
+   "x": [
+    "This year's % applied to the full contract",
+    "The full contract restated",
+    "Prior years restated to the new estimate"
+   ]
+  },
+  {
+   "id": "fsa2-rb92aa8",
+   "m": 3,
+   "g": "acq",
+   "q": "Where does goodwill sit, and is it a gain?",
+   "a": "An asset, never a gain",
+   "x": [
+    "A gain in profit or loss",
+    "A gain in OCI",
+    "A liability"
+   ]
+  },
+  {
+   "id": "fsa2-rbb3dbd",
+   "m": 3,
+   "g": "acq",
+   "q": "To compare an acquirer with an organic grower, analysts:",
+   "a": "Remove goodwill from assets and equity, exclude its impairment",
+   "x": [
+    "Add goodwill to equity",
+    "Keep impairment in income",
+    "Amortize goodwill first"
+   ]
+  },
+  {
+   "id": "fsa2-rcad043",
+   "m": 3,
+   "g": "meas",
+   "q": "How are held-to-maturity debt securities carried under US GAAP?",
+   "a": "Amortized cost",
+   "x": [
+    "Fair value through income",
+    "Fair value through OCI",
+    "Lower of cost or market"
+   ]
+  },
+  {
+   "id": "fsa2-r9c2bc0",
+   "m": 3,
+   "g": "meas",
+   "q": "How are available-for-sale securities carried, and where do gains go?",
+   "a": "Fair value, unrealized gains to OCI",
+   "x": [
+    "Fair value, gains to income",
+    "Amortized cost",
+    "Historical cost"
+   ]
+  },
+  {
+   "id": "fsa2-re12bda",
+   "m": 3,
+   "g": "meas",
+   "q": "A finite-life patent is carried at:",
+   "a": "Amortized cost",
+   "x": [
+    "Plain historical cost",
+    "Fair value",
+    "Recoverable amount"
+   ]
+  },
+  {
+   "id": "fsa2-rd3682d",
+   "m": 3,
+   "g": "liq",
+   "q": "Two firms share a current ratio but one's quick ratio is far lower. That firm:",
+   "a": "Holds much more inventory",
+   "x": [
+    "Is more liquid",
+    "Has more cash",
+    "Has less debt"
+   ]
+  },
+  {
+   "id": "fsa2-rb2a02d",
+   "m": 3,
+   "g": "liq",
+   "q": "A financial leverage ratio above the industry average signals:",
+   "a": "A riskier capital structure",
+   "x": [
+    "A safer capital structure",
+    "Stronger liquidity",
+    "Higher profitability"
+   ]
+  },
+  {
+   "id": "fsa2-r7e0462",
+   "m": 4,
+   "g": "cfo",
+   "q": "An operating current asset rises during the year. CFO:",
+   "a": "Falls, cash is tied up",
+   "x": [
+    "Rises",
+    "Is unchanged",
+    "Rises only if payables also rise"
+   ]
+  },
+  {
+   "id": "fsa2-r1226e8",
+   "m": 4,
+   "g": "cfo",
+   "q": "Accounts payable rise during the year. CFO:",
+   "a": "Rises, you held cash longer",
+   "x": [
+    "Falls",
+    "Is unchanged",
+    "Falls only if inventory also rises"
+   ]
+  },
+  {
+   "id": "fsa2-r4793ec",
+   "m": 4,
+   "g": "cfo",
+   "q": "Sales and net income are flat but CFO drops sharply. The likely cause:",
+   "a": "More sales made on credit",
+   "x": [
+    "Inventory fell",
+    "Payables rose",
+    "A one-time gain"
+   ]
+  },
+  {
+   "id": "fsa2-rbed60c",
+   "m": 4,
+   "g": "cfo",
+   "q": "A firm shifts from trade payables toward bank debt. CFO:",
+   "a": "Falls, suppliers are paid sooner",
+   "x": [
+    "Rises",
+    "Is unchanged",
+    "Rises then falls"
+   ]
+  },
+  {
+   "id": "fsa2-r64e1b1",
+   "m": 4,
+   "g": "cfo",
+   "q": "Where does tax paid on selling investment property go under US GAAP?",
+   "a": "Operating",
+   "x": [
+    "Investing",
+    "Financing",
+    "Operating under IFRS, investing under US GAAP"
+   ]
+  },
+  {
+   "id": "fsa2-r83b9e1",
+   "m": 4,
+   "g": "cfo",
+   "q": "Under IFRS, tax clearly tied to an investing transaction may be classified as:",
+   "a": "Investing",
+   "x": [
+    "Operating only",
+    "Financing only",
+    "It must stay operating"
+   ]
+  },
+  {
+   "id": "fsa2-r5ad8eb",
+   "m": 5,
+   "g": "fcff",
+   "q": "Why does FCFF add interest back after tax?",
+   "a": "It goes to debt holders and had saved tax",
+   "x": [
+    "It goes to equity holders",
+    "It is a non-cash charge",
+    "It was never deducted"
+   ]
+  },
+  {
+   "id": "fsa2-rd2d1ca",
+   "m": 5,
+   "g": "fcff",
+   "q": "In the FCFF build, fixed and working capital investment are:",
+   "a": "Subtracted",
+   "x": [
+    "Added",
+    "Ignored",
+    "Added after tax"
+   ]
+  },
+  {
+   "id": "fsa2-r965309",
+   "m": 6,
+   "g": "flow",
+   "q": "Which inventory cost method is allowed only under US GAAP?",
+   "a": "LIFO",
+   "x": [
+    "FIFO",
+    "Weighted average",
+    "Specific identification"
+   ]
+  },
+  {
+   "id": "fsa2-rffaf19",
+   "m": 6,
+   "g": "flow",
+   "q": "Under rising prices, LIFO produces:",
+   "a": "Highest COGS, lowest profit, lowest taxes",
+   "x": [
+    "Lowest COGS, highest profit",
+    "Highest ending inventory",
+    "The same as FIFO"
+   ]
+  },
+  {
+   "id": "fsa2-r3f76d6",
+   "m": 6,
+   "g": "flow",
+   "q": "Under rising prices, FIFO produces:",
+   "a": "Lowest COGS, highest ending inventory",
+   "x": [
+    "Highest COGS, lowest inventory",
+    "The lowest taxes",
+    "A result between the other two"
+   ]
+  },
+  {
+   "id": "fsa2-r462611",
+   "m": 6,
+   "g": "flow",
+   "q": "When inventory falls, which ratio improves?",
+   "a": "Inventory turnover",
+   "x": [
+    "Current ratio",
+    "Working capital",
+    "Debt-to-assets falls"
+   ]
+  },
+  {
+   "id": "fsa2-r257854",
+   "m": 6,
+   "g": "meas",
+   "q": "How is inventory measured under IFRS?",
+   "a": "Lower of cost and NRV",
+   "x": [
+    "Lower of cost or market",
+    "Historical cost",
+    "Fair value less costs to sell"
+   ]
+  },
+  {
+   "id": "fsa2-r9aab85",
+   "m": 6,
+   "g": "meas",
+   "q": "For US GAAP LIFO and retail inventory, \"market\" means:",
+   "a": "Replacement cost, floored and capped around NRV",
+   "x": [
+    "NRV alone",
+    "Fair value",
+    "Selling price"
+   ]
+  },
+  {
+   "id": "fsa2-r6f1c82",
+   "m": 6,
+   "g": "wd",
+   "q": "Written-down inventory later recovers in value. What does US GAAP allow?",
+   "a": "No reversal",
+   "x": [
+    "Reversal up to original cost",
+    "Full reversal above cost",
+    "Reversal through equity only"
+   ]
+  },
+  {
+   "id": "fsa2-r463f1d",
+   "m": 6,
+   "g": "wd",
+   "q": "Written-down inventory later recovers in value. What does IFRS allow?",
+   "a": "Reversal up to original cost",
+   "x": [
+    "No reversal",
+    "Full reversal above cost",
+    "Reversal only on sale"
+   ]
+  },
+  {
+   "id": "fsa2-rb62f2f",
+   "m": 6,
+   "g": "wd",
+   "q": "After an inventory write-down, inventory turnover:",
+   "a": "Improves",
+   "x": [
+    "Worsens",
+    "Does not change",
+    "Worsens this year, then improves"
+   ]
+  },
+  {
+   "id": "fsa2-r4a171c",
+   "m": 6,
+   "g": "wd",
+   "q": "After a write-down, which ratio family improves?",
+   "a": "Activity ratios",
+   "x": [
+    "Profitability",
+    "Liquidity",
+    "Solvency"
+   ]
+  },
+  {
+   "id": "fsa2-r2d4e6e",
+   "m": 6,
+   "g": "wd",
+   "q": "How may agricultural inventory be carried under both IFRS and US GAAP?",
+   "a": "NRV or fair value less costs to sell, even above cost",
+   "x": [
+    "Lower of cost and NRV",
+    "Historical cost only",
+    "IFRS only, not US GAAP"
+   ]
+  },
+  {
+   "id": "fsa2-r7e2b77",
+   "m": 7,
+   "g": "disp",
+   "q": "An asset is classified held for sale. Depreciation:",
+   "a": "Stops",
+   "x": [
+    "Continues",
+    "Doubles",
+    "Pauses one year then resumes"
+   ]
+  },
+  {
+   "id": "fsa2-rb1a500",
+   "m": 7,
+   "g": "disp",
+   "q": "An asset leaves by spin-off or abandonment rather than sale. Until it leaves it is:",
+   "a": "Held for use, still depreciating",
+   "x": [
+    "Held for sale, depreciation stopped",
+    "Written to zero at once",
+    "Carried at fair value"
+   ]
+  },
+  {
+   "id": "fsa2-r6cf610",
+   "m": 7,
+   "g": "model",
+   "q": "Which measurement models does IFRS allow for PP&E?",
+   "a": "Cost or revaluation",
+   "x": [
+    "Cost only",
+    "Revaluation only",
+    "Fair value or cost"
+   ]
+  },
+  {
+   "id": "fsa2-re6d81c",
+   "m": 7,
+   "g": "model",
+   "q": "Which measurement models does US GAAP allow for PP&E?",
+   "a": "Cost only",
+   "x": [
+    "Cost or revaluation",
+    "Revaluation only",
+    "Fair value only"
+   ]
+  },
+  {
+   "id": "fsa2-r190b3f",
+   "m": 7,
+   "g": "imp",
+   "q": "Under IFRS, an impairment loss equals:",
+   "a": "Carrying amount minus recoverable amount",
+   "x": [
+    "Carrying amount minus fair value",
+    "Carrying amount minus value in use",
+    "Recoverable amount minus carrying amount"
+   ]
+  },
+  {
+   "id": "fsa2-rc62b3f",
+   "m": 7,
+   "g": "imp",
+   "q": "Under IFRS, can an impairment loss be reversed if value recovers?",
+   "a": "Yes",
+   "x": [
+    "No",
+    "Only for goodwill",
+    "Only up to half the loss"
+   ]
+  },
+  {
+   "id": "fsa2-r65cb81",
+   "m": 7,
+   "g": "rd",
+   "q": "How are research costs treated?",
+   "a": "Always expensed",
+   "x": [
+    "Always capitalized",
+    "Capitalized under IFRS",
+    "Capitalized once a product is named"
+   ]
+  },
+  {
+   "id": "fsa2-r536b3d",
+   "m": 7,
+   "g": "rd",
+   "q": "How are development costs treated under IFRS?",
+   "a": "Capitalized once criteria are met",
+   "x": [
+    "Always expensed",
+    "Always capitalized",
+    "Expensed, same as US GAAP"
+   ]
+  },
+  {
+   "id": "fsa2-r6f54f1",
+   "m": 7,
+   "g": "rd",
+   "q": "A firm that capitalizes development vs one that expenses it has:",
+   "a": "Higher EBITDA",
+   "x": [
+    "Lower EBITDA",
+    "The same EBITDA",
+    "A lower EBITDA multiple"
+   ]
+  },
+  {
+   "id": "fsa2-r88d110",
+   "m": 7,
+   "g": "fv",
+   "q": "A longer useful life and higher salvage value move an income-approach fair value:",
+   "a": "Up",
+   "x": [
+    "Down",
+    "Not at all",
+    "Up then down"
+   ]
+  },
+  {
+   "id": "fsa2-r5cdb8a",
+   "m": 7,
+   "g": "fv",
+   "q": "A buyer who wants minimal goodwill prefers fair-value assumptions that:",
+   "a": "Raise identifiable asset values",
+   "x": [
+    "Lower identifiable asset values",
+    "Leave them at book value",
+    "Lower salvage value"
+   ]
+  },
+  {
+   "id": "fsa2-r3ac25a",
+   "m": 8,
+   "g": "pen",
+   "q": "Under IFRS, service cost and net interest are reported in:",
+   "a": "Profit or loss",
+   "x": [
+    "OCI",
+    "Equity directly",
+    "Split between P&L and OCI"
+   ]
+  },
+  {
+   "id": "fsa2-r8f93a0",
+   "m": 8,
+   "g": "pen",
+   "q": "Under IFRS, remeasurements of a pension are reported in:",
+   "a": "OCI, never recycled",
+   "x": [
+    "Profit or loss",
+    "OCI, later recycled",
+    "Retained earnings directly"
+   ]
+  },
+  {
+   "id": "fsa2-rb5770c",
+   "m": 8,
+   "g": "pen",
+   "q": "A plan amendment improves benefits for past service. Under IFRS it is:",
+   "a": "Past service cost in P&L",
+   "x": [
+    "A remeasurement in OCI",
+    "Spread over future service",
+    "A direct equity charge"
+   ]
+  },
+  {
+   "id": "fsa2-rb921cc",
+   "m": 8,
+   "g": "pen",
+   "q": "Longer life expectancy for retirees is:",
+   "a": "An actuarial loss in OCI",
+   "x": [
+    "An actuarial gain in OCI",
+    "An operating expense",
+    "A service cost in P&L"
+   ]
+  },
+  {
+   "id": "fsa2-r072024",
+   "m": 8,
+   "g": "lease",
+   "q": "Which is a genuine lessee advantage of leasing?",
+   "a": "Less exposure to obsolescence",
+   "x": [
+    "Large down payment",
+    "More restrictive covenants",
+    "Always lower total cost"
+   ]
+  },
+  {
+   "id": "fsa2-r094915",
+   "m": 9,
+   "g": "dt",
+   "q": "An asset's carrying amount sits above its tax base. This creates:",
+   "a": "A deferred tax liability",
+   "x": [
+    "A deferred tax asset",
+    "A valuation allowance",
+    "A permanent difference"
+   ]
+  },
+  {
+   "id": "fsa2-r58c783",
+   "m": 9,
+   "g": "dt",
+   "q": "An asset's carrying amount sits below its tax base. This creates:",
+   "a": "A deferred tax asset",
+   "x": [
+    "A deferred tax liability",
+    "A permanent difference",
+    "No deferred tax"
+   ]
+  },
+  {
+   "id": "fsa2-r1b47b1",
+   "m": 9,
+   "g": "dt",
+   "q": "Where is a deferred tax item recorded?",
+   "a": "Wherever its underlying change was recorded",
+   "x": [
+    "Always in profit or loss",
+    "Always in OCI",
+    "Always in equity"
+   ]
+  },
+  {
+   "id": "fsa2-ref50fb",
+   "m": 9,
+   "g": "dt",
+   "q": "The books revalue an asset down while the tax base holds. This creates:",
+   "a": "A DTA equal to the fall times the tax rate",
+   "x": [
+    "A DTL",
+    "A direct charge to equity",
+    "No deferred tax"
+   ]
+  },
+  {
+   "id": "fsa2-r39101a",
+   "m": 9,
+   "g": "dt",
+   "q": "When is a US GAAP valuation allowance raised against a DTA?",
+   "a": "When future taxable income is more likely than not to fall short",
+   "x": [
+    "Whenever a DTA exists",
+    "When a DTL also exists",
+    "When the tax rate rises"
+   ]
+  },
+  {
+   "id": "fsa2-r3da68a",
+   "m": 9,
+   "g": "diff",
+   "q": "A temporary difference creates deferred tax because it:",
+   "a": "Reverses over time",
+   "x": [
+    "Never reverses",
+    "Changes the statutory rate",
+    "Only affects the effective rate"
+   ]
+  },
+  {
+   "id": "fsa2-r5c6c58",
+   "m": 9,
+   "g": "diff",
+   "q": "A non-deductible fine or premium creates:",
+   "a": "No deferred tax, only an effective-rate gap",
+   "x": [
+    "A deferred tax asset",
+    "A deferred tax liability",
+    "A valuation allowance"
+   ]
+  },
+  {
+   "id": "fsa2-r2405a7",
+   "m": 10,
+   "g": "cons",
+   "q": "Choices that lower reported performance now and may raise it later are:",
+   "a": "Conservative",
+   "x": [
+    "Aggressive",
+    "Unsustainable",
+    "A permanent difference"
+   ]
+  },
+  {
+   "id": "fsa2-re63686",
+   "m": 10,
+   "g": "cons",
+   "q": "Which revenue timing is the most conservative?",
+   "a": "Recognizing only on completion",
+   "x": [
+    "All revenue at the start",
+    "As costs are incurred",
+    "Half at start, half at completion"
+   ]
+  },
+  {
+   "id": "fsa2-ra3f7cf",
+   "m": 10,
+   "g": "cons",
+   "q": "Which revenue timing is the most aggressive?",
+   "a": "All revenue at the start",
+   "x": [
+    "Only on completion",
+    "As costs are incurred",
+    "Evenly across the contract"
+   ]
+  },
+  {
+   "id": "fsa2-r7c63b9",
+   "m": 11,
+   "g": "dup",
+   "q": "A lower effective tax rate moves the tax-burden ratio and ROE:",
+   "a": "Both up",
+   "x": [
+    "Both down",
+    "Tax burden up, ROE down",
+    "No effect on ROE"
+   ]
+  },
+  {
+   "id": "fsa2-rde0abd",
+   "m": 11,
+   "g": "dup",
+   "q": "A lower days-sales-outstanding moves ROE:",
+   "a": "Up, through higher asset turnover",
+   "x": [
+    "Down",
+    "No effect",
+    "Up only if margin also rises"
+   ]
+  },
+  {
+   "id": "fsa2-r9e9ba6",
+   "m": 11,
+   "g": "dup",
+   "q": "Of a lower tax rate, a lower DSO and lower leverage, which lowers ROE?",
+   "a": "Lower leverage",
+   "x": [
+    "Lower tax rate",
+    "Lower DSO",
+    "None of them"
+   ]
+  },
+  {
+   "id": "fsa2-r3cf1af",
+   "m": 11,
+   "g": "solv",
+   "q": "Higher debt-based leverage ratios mean:",
+   "a": "Weaker solvency, more financial risk",
+   "x": [
+    "Stronger solvency",
+    "Better coverage",
+    "No change to risk"
+   ]
+  },
+  {
+   "id": "fsa2-r2d097a",
+   "m": 11,
+   "g": "solv",
+   "q": "Coverage ratios are built from:",
+   "a": "The income and cash-flow statements",
+   "x": [
+    "The balance sheet",
+    "The equity statement",
+    "The tax return"
+   ]
+  },
+  {
+   "id": "fsa2-r31e8f9",
+   "m": 12,
+   "g": "rev12",
+   "q": "Organic growth is made of:",
+   "a": "Volume plus price/mix together",
+   "x": [
+    "Volume only",
+    "Price/mix only",
+    "Acquisitions and divestitures"
+   ]
+  },
+  {
+   "id": "fsa2-rc0bd22",
+   "m": 12,
+   "g": "mod",
+   "q": "As a firm's revenue grows, net working capital usually:",
+   "a": "Grows with it and uses cash",
+   "x": [
+    "Shrinks",
+    "Stays fixed",
+    "Grows and releases cash"
+   ]
   }
  ],
  "formulas": [
   {
-   "id": "fsa-f72",
+   "id": "fsa2-f8168c0",
    "m": 2,
-   "g": "eps",
+   "g": "f",
    "name": "WASO",
    "formula": "shares at start + new shares × (months outstanding / 12)"
   },
   {
-   "id": "fsa-f1",
+   "id": "fsa2-f44112a",
    "m": 2,
-   "g": "eps",
+   "g": "f",
    "name": "Basic EPS",
    "formula": "(net income − preferred dividends) / WASO"
   },
   {
-   "id": "fsa-f3",
+   "id": "fsa2-f35d093",
    "m": 2,
-   "g": "eps",
+   "g": "f",
    "name": "After-tax interest on convertible debt",
    "formula": "face value × coupon rate × (1 − tax rate)"
   },
   {
-   "id": "fsa-f2",
+   "id": "fsa2-f1d8615",
    "m": 2,
-   "g": "eps",
+   "g": "f",
    "name": "Diluted EPS",
    "formula": "(net income − preferred dividends + after-tax interest on convertible debt) / (WASO + shares from conversion)"
   },
   {
-   "id": "fsa-f5",
+   "id": "fsa2-f85094d",
    "m": 2,
-   "g": "rev",
+   "g": "f",
    "name": "Revenue to date (input method)",
    "formula": "(cumulative costs incurred / current total estimated cost) × contract price"
   },
   {
-   "id": "fsa-f6",
+   "id": "fsa2-f4ae76e",
    "m": 2,
-   "g": "rev",
+   "g": "f",
    "name": "This year's contract revenue",
    "formula": "revenue to date − revenue recognized in prior years"
   },
   {
-   "id": "fsa-f7",
+   "id": "fsa2-f90e308",
    "m": 3,
-   "g": "re",
+   "g": "f",
    "name": "Ending retained earnings",
    "formula": "beginning RE + net income − dividends declared"
   },
   {
-   "id": "fsa-f8",
+   "id": "fsa2-f0c6ead",
    "m": 3,
-   "g": "re",
+   "g": "f",
    "name": "Goodwill",
    "formula": "purchase price − fair value of identifiable net assets"
   },
   {
-   "id": "fsa-f9",
+   "id": "fsa2-f596f39",
    "m": 3,
-   "g": "liq",
+   "g": "f",
    "name": "Current ratio",
    "formula": "current assets / current liabilities"
   },
   {
-   "id": "fsa-f10",
+   "id": "fsa2-f62450b",
    "m": 3,
-   "g": "liq",
+   "g": "f",
    "name": "Quick ratio",
    "formula": "(cash + short-term investments + receivables) / current liabilities"
   },
   {
-   "id": "fsa-f14",
+   "id": "fsa2-fc4b641",
    "m": 3,
-   "g": "liq",
+   "g": "f",
    "name": "Financial leverage",
    "formula": "total assets / total equity"
   },
   {
-   "id": "fsa-f16",
+   "id": "fsa2-fd29d2d",
    "m": 4,
-   "g": "cash",
+   "g": "f",
    "name": "Purchases",
    "formula": "COGS + ending inventory − beginning inventory"
   },
   {
-   "id": "fsa-f17",
+   "id": "fsa2-f1e7258",
    "m": 4,
-   "g": "cash",
+   "g": "f",
    "name": "Cash paid to suppliers",
    "formula": "purchases − increase in accounts payable"
   },
   {
-   "id": "fsa-f20",
+   "id": "fsa2-ff96416",
    "m": 5,
-   "g": "fcf",
+   "g": "f",
    "name": "FCFF",
    "formula": "net income + non-cash charges + interest × (1 − tax rate) − fixed capital investment − working capital investment"
   },
   {
-   "id": "fsa-f49",
+   "id": "fsa2-f25cedc",
    "m": 6,
-   "g": "act",
+   "g": "f",
    "name": "Inventory turnover",
    "formula": "COGS / average inventory"
   },
   {
-   "id": "fsa-f50",
+   "id": "fsa2-f78b901",
    "m": 6,
-   "g": "act",
+   "g": "f",
    "name": "Days of inventory on hand (DOH)",
    "formula": "365 / inventory turnover"
   },
   {
-   "id": "fsa-f56",
+   "id": "fsa2-fad3729",
    "m": 6,
-   "g": "act",
+   "g": "f",
    "name": "Cash conversion cycle",
    "formula": "days of inventory + days of receivables − days of payables"
   },
   {
-   "id": "fsa-f73",
+   "id": "fsa2-fc25176",
    "m": 7,
-   "g": "imp",
+   "g": "f",
    "name": "Recoverable amount",
    "formula": "max(fair value − costs to sell, value in use)"
   },
   {
-   "id": "fsa-f39",
+   "id": "fsa2-f210126",
    "m": 7,
-   "g": "imp",
+   "g": "f",
    "name": "IFRS impairment loss",
    "formula": "carrying amount − recoverable amount"
   },
   {
-   "id": "fsa-f45",
+   "id": "fsa2-fb0601e",
    "m": 9,
-   "g": "tax",
-   "name": "Deferred tax",
-   "formula": "(carrying amount − tax base) × tax rate (for an asset, positive = DTL, negative = DTA)"
+   "g": "f",
+   "name": "Deferred tax (for an asset)",
+   "formula": "(carrying amount − tax base) × tax rate"
   },
   {
-   "id": "fsa-f62",
+   "id": "fsa2-feb4739",
    "m": 11,
-   "g": "prof",
-   "name": "ROA",
-   "formula": "net income / average total assets"
-  },
-  {
-   "id": "fsa-f63",
-   "m": 11,
-   "g": "prof",
+   "g": "f",
    "name": "ROE",
    "formula": "net income / average total equity"
   },
   {
-   "id": "fsa-f74",
+   "id": "fsa2-f54dc87",
    "m": 11,
-   "g": "prof",
-   "name": "Net profit margin",
-   "formula": "net income / revenue"
-  },
-  {
-   "id": "fsa-f55",
-   "m": 11,
-   "g": "prof",
-   "name": "Total asset turnover",
-   "formula": "revenue / average total assets"
-  },
-  {
-   "id": "fsa-f75",
-   "m": 11,
-   "g": "prof",
-   "name": "Financial leverage (DuPont)",
-   "formula": "average total assets / average total equity"
-  },
-  {
-   "id": "fsa-f65",
-   "m": 11,
-   "g": "dup",
+   "g": "f",
    "name": "3-part DuPont",
    "formula": "ROE = net profit margin × total asset turnover × financial leverage"
   },
   {
-   "id": "fsa-f66",
+   "id": "fsa2-f67095b",
    "m": 11,
-   "g": "dup",
-   "name": "ROE from ROA",
-   "formula": "ROE = ROA × financial leverage"
+   "g": "f",
+   "name": "Financial leverage (DuPont)",
+   "formula": "average total assets / average total equity"
   },
   {
-   "id": "fsa-f67",
+   "id": "fsa2-f342572",
    "m": 11,
-   "g": "dup",
-   "name": "5-part DuPont",
-   "formula": "ROE = (NI / EBT) × (EBT / EBIT) × (EBIT / revenue) × (revenue / average assets) × (average assets / average equity)"
-  },
-  {
-   "id": "fsa-f48",
-   "m": 11,
-   "g": "act11",
-   "name": "Days of sales outstanding (DSO)",
-   "formula": "average receivables / (revenue / 365)"
-  },
-  {
-   "id": "fsa-f76",
-   "m": 11,
-   "g": "act11",
-   "name": "Total debt ratio",
-   "formula": "total debt / total assets"
-  },
-  {
-   "id": "fsa-f68",
-   "m": 11,
-   "g": "grow",
-   "name": "Retention rate (b)",
-   "formula": "1 − dividend payout ratio"
-  },
-  {
-   "id": "fsa-f69",
-   "m": 11,
-   "g": "grow",
+   "g": "f",
    "name": "Sustainable growth (g)",
    "formula": "retention rate × ROE"
   },
   {
-   "id": "fsa-f70",
+   "id": "fsa2-f65c0a3",
+   "m": 11,
+   "g": "f",
+   "name": "Retention rate (b)",
+   "formula": "1 − dividend payout ratio"
+  },
+  {
+   "id": "fsa2-f95aa86",
    "m": 12,
-   "g": "m12",
+   "g": "f",
    "name": "Forecast line item",
    "formula": "forecast revenue × that item's historical % of revenue"
   },
   {
-   "id": "fsa-f71",
+   "id": "fsa2-f82f86d",
    "m": 12,
-   "g": "m12",
+   "g": "f",
    "name": "Pro forma CFO",
    "formula": "net income + depreciation − increase in net working capital"
+  }
+ ],
+ "decoyTerms": [
+  {
+   "m": 1,
+   "g": "body",
+   "term": "IFRS Foundation"
+  },
+  {
+   "m": 1,
+   "g": "audit",
+   "term": "Management commentary"
+  },
+  {
+   "m": 1,
+   "g": "audit",
+   "term": "Proxy statement"
+  },
+  {
+   "m": 3,
+   "g": "acq",
+   "term": "Bargain purchase"
+  },
+  {
+   "m": 3,
+   "g": "meas",
+   "term": "Trading securities"
+  },
+  {
+   "m": 3,
+   "g": "liq",
+   "term": "Cash ratio"
+  },
+  {
+   "m": 4,
+   "g": "cfo",
+   "term": "Direct method"
+  },
+  {
+   "m": 4,
+   "g": "cfo",
+   "term": "Indirect method"
+  },
+  {
+   "m": 4,
+   "g": "cfo",
+   "term": "Cash flow from investing"
+  },
+  {
+   "m": 6,
+   "g": "flow",
+   "term": "Specific identification"
+  },
+  {
+   "m": 6,
+   "g": "lifo",
+   "term": "LIFO conformity rule"
+  },
+  {
+   "m": 6,
+   "g": "lifo",
+   "term": "Inventory write-up"
+  },
+  {
+   "m": 6,
+   "g": "meas",
+   "term": "Replacement cost"
+  },
+  {
+   "m": 6,
+   "g": "meas",
+   "term": "Value in use"
+  },
+  {
+   "m": 6,
+   "g": "meas",
+   "term": "Historical cost"
+  },
+  {
+   "m": 7,
+   "g": "disp",
+   "term": "Held for use"
+  },
+  {
+   "m": 7,
+   "g": "rd",
+   "term": "Starting-stage costs"
+  },
+  {
+   "m": 8,
+   "g": "pen",
+   "term": "Defined contribution plan"
+  },
+  {
+   "m": 10,
+   "g": "cons",
+   "term": "Earnings management"
+  },
+  {
+   "m": 11,
+   "g": "dup",
+   "term": "Operating margin"
+  }
+ ],
+ "decoyFormulas": [
+  {
+   "for": "fsa2-f8168c0",
+   "formula": "shares at start + new shares"
+  },
+  {
+   "for": "fsa2-f8168c0",
+   "formula": "shares at year-end"
+  },
+  {
+   "for": "fsa2-f44112a",
+   "formula": "(net income − preferred dividends) / year-end shares"
+  },
+  {
+   "for": "fsa2-f44112a",
+   "formula": "net income / WASO"
+  },
+  {
+   "for": "fsa2-f35d093",
+   "formula": "face value × coupon rate"
+  },
+  {
+   "for": "fsa2-f35d093",
+   "formula": "face value × coupon rate × tax rate"
+  },
+  {
+   "for": "fsa2-f85094d",
+   "formula": "(this year's costs / total estimated cost) × contract price"
+  },
+  {
+   "for": "fsa2-f85094d",
+   "formula": "(costs incurred / contract price) × total cost"
+  },
+  {
+   "for": "fsa2-f4ae76e",
+   "formula": "this year's % × full contract"
+  },
+  {
+   "for": "fsa2-f90e308",
+   "formula": "beginning RE + net income + dividends declared"
+  },
+  {
+   "for": "fsa2-f90e308",
+   "formula": "beginning RE − net income − dividends"
+  },
+  {
+   "for": "fsa2-f0c6ead",
+   "formula": "fair value of identifiable net assets − purchase price"
+  },
+  {
+   "for": "fsa2-f0c6ead",
+   "formula": "purchase price − book value of net assets"
+  },
+  {
+   "for": "fsa2-f596f39",
+   "formula": "current liabilities / current assets"
+  },
+  {
+   "for": "fsa2-f596f39",
+   "formula": "(current assets − inventory) / current liabilities"
+  },
+  {
+   "for": "fsa2-f62450b",
+   "formula": "(cash + short-term investments + receivables + inventory) / current liabilities"
+  },
+  {
+   "for": "fsa2-f62450b",
+   "formula": "current assets / current liabilities"
+  },
+  {
+   "for": "fsa2-fc4b641",
+   "formula": "total liabilities / total equity"
+  },
+  {
+   "for": "fsa2-fc4b641",
+   "formula": "total debt / total assets"
+  },
+  {
+   "for": "fsa2-fd29d2d",
+   "formula": "COGS + beginning inventory − ending inventory"
+  },
+  {
+   "for": "fsa2-fd29d2d",
+   "formula": "COGS − ending inventory + beginning inventory"
+  },
+  {
+   "for": "fsa2-f1e7258",
+   "formula": "purchases + increase in accounts payable"
+  },
+  {
+   "for": "fsa2-f1e7258",
+   "formula": "purchases − increase in inventory"
+  },
+  {
+   "for": "fsa2-ff96416",
+   "formula": "net income + non-cash charges + interest − FCInv − WCInv"
+  },
+  {
+   "for": "fsa2-ff96416",
+   "formula": "net income + non-cash charges − interest × (1 − tax rate) − FCInv − WCInv"
+  },
+  {
+   "for": "fsa2-f25cedc",
+   "formula": "average inventory / COGS"
+  },
+  {
+   "for": "fsa2-f25cedc",
+   "formula": "COGS / ending inventory"
+  },
+  {
+   "for": "fsa2-f78b901",
+   "formula": "inventory turnover / 365"
+  },
+  {
+   "for": "fsa2-f78b901",
+   "formula": "365 × inventory turnover"
+  },
+  {
+   "for": "fsa2-fad3729",
+   "formula": "days of inventory − days of receivables + days of payables"
+  },
+  {
+   "for": "fsa2-fad3729",
+   "formula": "days of inventory + days of receivables + days of payables"
+  },
+  {
+   "for": "fsa2-fc25176",
+   "formula": "max(fair value, value in use)"
+  },
+  {
+   "for": "fsa2-fc25176",
+   "formula": "min(fair value − costs to sell, value in use)"
+  },
+  {
+   "for": "fsa2-f210126",
+   "formula": "carrying amount − min(fair value − costs to sell, value in use)"
+  },
+  {
+   "for": "fsa2-f210126",
+   "formula": "recoverable amount − carrying amount"
+  },
+  {
+   "for": "fsa2-fb0601e",
+   "formula": "(tax base − carrying amount) × tax rate"
+  },
+  {
+   "for": "fsa2-fb0601e",
+   "formula": "(carrying amount − tax base) × (1 − tax rate)"
+  },
+  {
+   "for": "fsa2-feb4739",
+   "formula": "net income / average total assets"
+  },
+  {
+   "for": "fsa2-feb4739",
+   "formula": "net income / revenue"
+  },
+  {
+   "for": "fsa2-f54dc87",
+   "formula": "ROE = net profit margin × total asset turnover"
+  },
+  {
+   "for": "fsa2-f54dc87",
+   "formula": "ROE = margin × turnover + leverage"
+  },
+  {
+   "for": "fsa2-f67095b",
+   "formula": "total liabilities / total equity"
+  },
+  {
+   "for": "fsa2-f67095b",
+   "formula": "total debt / total assets"
+  },
+  {
+   "for": "fsa2-f342572",
+   "formula": "dividend payout ratio × ROE"
+  },
+  {
+   "for": "fsa2-f342572",
+   "formula": "(1 + retention rate) × ROE"
+  },
+  {
+   "for": "fsa2-f65c0a3",
+   "formula": "dividend payout ratio"
+  },
+  {
+   "for": "fsa2-f65c0a3",
+   "formula": "1 + dividend payout ratio"
+  },
+  {
+   "for": "fsa2-f95aa86",
+   "formula": "forecast revenue × next year's target %"
+  },
+  {
+   "for": "fsa2-f95aa86",
+   "formula": "historical revenue × this year's %"
+  },
+  {
+   "for": "fsa2-f82f86d",
+   "formula": "net income + depreciation − net working capital"
+  },
+  {
+   "for": "fsa2-f82f86d",
+   "formula": "net income + depreciation + increase in net working capital"
   }
  ],
  "traps": [
   {
    "m": 1,
-   "text": "Who requires the SOX internal control report: the SEC. FASB is the tempting wrong answer because it sounds like the US accounting authority, but it only writes standards."
+   "text": "The SEC, not the FASB, requires the SOX internal control report. The FASB only writes standards."
   },
   {
    "m": 1,
-   "text": "\"Certain exceptions to the accounting principles\" points to qualified, not adverse. Adverse means the statements as a whole are unreliable."
+   "text": "\"Certain exceptions to the principles\" means qualified, not adverse. Adverse means the whole set is unreliable."
   },
   {
    "m": 2,
-   "text": "Reporting a diluted EPS that is above basic. In the official mock, basic was $1.60 and the if-converted figure $1.61, so the answer is $1.60."
+   "text": "Reporting diluted EPS above basic. If the if-converted figure exceeds basic, the security is antidilutive and you report basic."
   },
   {
    "m": 2,
-   "text": "Subtracting the interest instead of adding it back, or adding the interest before tax."
+   "text": "Subtracting convertible interest instead of adding it back, or adding it before tax."
   },
   {
    "m": 2,
-   "text": "Using year-end share count instead of WASO, or forgetting to time-weight a mid-year issue."
+   "text": "Using the year-end share count instead of WASO, or forgetting to time-weight a mid-year issue."
   },
   {
    "m": 2,
-   "text": "Applying this year's percentage to the full contract instead of using the cumulative percentage and subtracting prior revenue."
+   "text": "Applying this year's percentage to the whole contract instead of cumulative-minus-prior."
   },
   {
    "m": 2,
-   "text": "\"Both policy and estimate changes are applied retrospectively\" is false. Only policy changes are."
+   "text": "\"Both policy and estimate changes are retrospective\" is false. Only policy changes are."
   },
   {
    "m": 2,
@@ -1098,47 +1988,47 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 3,
-   "text": "In the retained earnings question, adding dividends instead of subtracting them gives 100; ignoring them gives 500. The answer is 900."
+   "text": "In the retained earnings question, adding dividends gives 100 and ignoring them gives 500. The answer is 900."
   },
   {
    "m": 3,
-   "text": "Recording goodwill as a gain in P&L or OCI. It's an asset."
+   "text": "Recording goodwill as a gain in income or OCI. It is an asset."
   },
   {
    "m": 3,
-   "text": "\"Include goodwill impairment losses on the income statement\" is the wrong analyst adjustment. Analysts exclude them."
+   "text": "\"Include goodwill impairment on the income statement\" is the wrong analyst adjustment. Analysts exclude it."
   },
   {
    "m": 3,
-   "text": "A higher current ratio than peers does not mean better liquidity if the quick ratio is far lower. Meldrum's balance sheet had a current ratio of 1.99 but a quick ratio of 0.13: almost all inventory."
+   "text": "A higher current ratio is not better liquidity if the quick ratio is far lower. Meldrum: current 1.99, quick 0.13, nearly all inventory."
   },
   {
    "m": 3,
-   "text": "A financial leverage ratio above the industry average means a riskier, not safer, capital structure."
+   "text": "A financial leverage ratio above the industry average is riskier, not safer."
   },
   {
    "m": 4,
-   "text": "In the cash-to-suppliers question, adding the inventory decrease (950) or adding both the inventory decrease and the payables increase (1,150). The answer is 800 − 250 − 100 = 450."
+   "text": "In the cash-to-suppliers question, adding the inventory fall (950) or adding both the inventory fall and the payables rise (1,150). The answer is 800 − 250 − 100 = 450."
   },
   {
    "m": 4,
-   "text": "Picking \"inventory decreased\" to explain a CFO collapse. A falling inventory would push CFO up."
+   "text": "Picking \"inventory decreased\" to explain a CFO collapse. Falling inventory pushes CFO up."
   },
   {
    "m": 4,
-   "text": "\"Investing activity under both US GAAP and IFRS\" for taxes on an investment sale. US GAAP keeps all taxes in operating."
+   "text": "\"Investing under both US GAAP and IFRS\" for tax on an investment sale. US GAAP keeps all tax in operating."
   },
   {
    "m": 5,
-   "text": "Adding back pre-tax interest (that gives 80.50 in the Meldrum question). The add-back is 22.5 × 0.8 = 18, so FCFF = 110 + 24 + 18 − 48 − 28 = 76.0."
+   "text": "Adding back pre-tax interest (gives 80.50 in the Meldrum question). The add-back is 22.5 × 0.8 = 18, so FCFF = 110 + 24 + 18 − 48 − 28 = 76.0."
   },
   {
    "m": 5,
-   "text": "Revenue (500) is a distractor in the question. FCFF starts from net income."
+   "text": "Revenue (500) is a distractor. FCFF starts from net income."
   },
   {
    "m": 6,
-   "text": "Weighted average vs FIFO in rising prices: weighted average has a lower gross margin and higher turnover, so a shorter cash conversion cycle. \"Higher gross margin than FIFO\" is the trap."
+   "text": "Weighted average vs FIFO in rising prices: weighted average has lower gross margin and higher turnover, so a shorter cash conversion cycle. \"Higher gross margin than FIFO\" is the trap."
   },
   {
    "m": 6,
@@ -1146,7 +2036,7 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 6,
-   "text": "\"Both IFRS and US GAAP allow write-down reversals\" is false. US GAAP doesn't."
+   "text": "\"Both IFRS and US GAAP allow write-down reversals\" is false. US GAAP does not."
   },
   {
    "m": 6,
@@ -1154,19 +2044,19 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 6,
-   "text": "When a LIFO company's units drop sharply and then get replaced, the missing disclosure is the LIFO liquidation. There is nothing to disclose about write-down reversals under US GAAP."
+   "text": "When a LIFO firm's units drop sharply then refill, the missing disclosure is LIFO liquidation. US GAAP has nothing to disclose about a reversal."
   },
   {
    "m": 7,
-   "text": "\"Cost model only\" is the US GAAP answer. The IFRS answer is cost or revaluation."
+   "text": "\"Cost model only\" is the US GAAP answer. IFRS allows cost or revaluation."
   },
   {
    "m": 7,
-   "text": "In the impairment question: ignoring costs to sell gives 2 (50 − 48); taking the lower of the two amounts gives 5 (50 − 45). The answer is 50 − max(45, 46) = 4."
+   "text": "In the impairment question, ignoring costs to sell gives 2 (50 − 48); taking the lower amount gives 5 (50 − 45). The answer is 50 − max(45, 46) = 4."
   },
   {
    "m": 7,
-   "text": "Classifying a spin-off as held for sale, or stopping depreciation."
+   "text": "Classifying a spin-off as held for sale, or stopping its depreciation."
   },
   {
    "m": 7,
@@ -1174,7 +2064,7 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 7,
-   "text": "The company that expenses all R&D has lower EBITDA, so it trades at the higher EBITDA multiple."
+   "text": "The firm that expenses all R&D has lower EBITDA, so it trades at the higher EBITDA multiple."
   },
   {
    "m": 8,
@@ -1186,11 +2076,11 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 8,
-   "text": "A plan amendment that helps employees is a past service cost reported in P&L under IFRS. That statement is correct, not the \"least accurate\" one."
+   "text": "A benefit-improving amendment is a past service cost in P&L under IFRS. That statement is correct, not the \"least accurate\" one."
   },
   {
    "m": 8,
-   "text": "\"Leases are costly and need large down payments\" and \"leases are more restrictive\" are both false."
+   "text": "\"Leases are costly and need big down payments\" and \"leases are more restrictive\" are both false."
   },
   {
    "m": 9,
@@ -1198,7 +2088,7 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 9,
-   "text": "\"Tax authorities do not allow an expense item\" is a permanent difference, so no DTL or DTA."
+   "text": "\"Tax authorities disallow an expense\" is a permanent difference, so no DTA or DTL."
   },
   {
    "m": 9,
@@ -1206,27 +2096,27 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 9,
-   "text": "Non-deductible key person insurance premiums create neither a DTA nor a DTL."
+   "text": "Non-deductible key-person insurance premiums create neither a DTA nor a DTL."
   },
   {
    "m": 9,
-   "text": "The revaluation question: 8.5m − 5.8m = 2.7m × 30% = 0.81m DTA, not a DTL and not a direct charge to equity."
+   "text": "The revaluation question: 8.5m − 5.8m = 2.7m × 30% = 0.81m DTA, not a DTL and not a direct equity charge."
   },
   {
    "m": 10,
-   "text": "\"Decrease reported performance now, may increase it later\" is conservative, not aggressive and not \"unsustainable.\""
+   "text": "\"Lowers performance now, may raise it later\" is conservative, not aggressive and not \"unsustainable.\""
   },
   {
    "m": 10,
-   "text": "The most conservative revenue approach is recognizing only on completion, not recognizing in proportion to costs."
+   "text": "The most conservative revenue approach is recognizing only on completion, not in proportion to costs."
   },
   {
    "m": 11,
-   "text": "Financial leverage from assets 600, liabilities 120, equity 480, debt 60 is 600 / 480 = 1.25. Liabilities / equity (0.25) and debt / assets (0.10) are the traps."
+   "text": "Financial leverage from assets 600, equity 480 is 600 / 480 = 1.25. Liabilities/equity (0.25) and debt/assets (0.10) are the traps."
   },
   {
    "m": 11,
-   "text": "Back-solving from margin 4%, ROA 8%, ROE 16%, revenue 2.5m: NI = 100,000; equity = 100,000 / 16% = 625,000; assets = 1,250,000; turnover = 2; leverage = 2. \"Turnover is 4\" and \"leverage is 4\" are traps."
+   "text": "Back-solving from margin 4%, ROA 8%, ROE 16%, revenue 2.5m: NI = 100,000; equity = 625,000; assets = 1,250,000; turnover = 2; leverage = 2. \"Turnover is 4\" and \"leverage is 4\" are traps."
   },
   {
    "m": 11,
@@ -1234,19 +2124,15 @@ window.TOPIC_CONTENT.fsa = {
   },
   {
    "m": 11,
-   "text": "Sustainable growth uses retention (0.45), not payout (0.55), and the answer is g (5.88%), not ROE (13.06%)."
+   "text": "Sustainable growth uses retention (0.45), not payout (0.55); the answer is g (5.88%), not ROE (13.06%)."
   },
   {
    "m": 11,
-   "text": "Purchases = COGS + ending − beginning inventory. Flipping the signs is the trap."
-  },
-  {
-   "m": 11,
-   "text": "\"Higher debt-based leverage ratios mean stronger solvency\" is false."
+   "text": "\"Higher debt-based leverage means stronger solvency\" is false."
   },
   {
    "m": 12,
-   "text": "\"Volume only\" or \"price/mix only\" for organic growth. It's both."
+   "text": "\"Volume only\" or \"price/mix only\" for organic growth. It is both."
   },
   {
    "m": 12,
@@ -2214,84 +3100,6 @@ window.TOPIC_CONTENT.fsa = {
    ],
    "a": 1,
    "why": "NI = 14% × 120 = 16.8. Depreciation = 12.0. NWC rises from 20 to 24, so subtract 4. CFO = 24.8."
-  }
- ],
- "decoyTerms": [],
- "decoyFormulas": [
-  {
-   "for": "fsa-f72",
-   "formula": "shares at start + new shares",
-   "mistake": "forgetting to time-weight a mid-year issue"
-  },
-  {
-   "for": "fsa-f1",
-   "formula": "(net income − preferred dividends) / year-end shares",
-   "mistake": "year-end count instead of WASO"
-  },
-  {
-   "for": "fsa-f3",
-   "formula": "face value × coupon rate",
-   "mistake": "adding the interest before tax"
-  },
-  {
-   "for": "fsa-f6",
-   "formula": "(this year's costs / total estimated cost) × contract price",
-   "mistake": "this year's percentage on the full contract"
-  },
-  {
-   "for": "fsa-f7",
-   "formula": "beginning RE + net income + dividends declared",
-   "mistake": "adding dividends"
-  },
-  {
-   "for": "fsa-f16",
-   "formula": "COGS + beginning inventory − ending inventory",
-   "mistake": "flipping the signs"
-  },
-  {
-   "for": "fsa-f17",
-   "formula": "purchases + increase in accounts payable",
-   "mistake": "adding the payables increase"
-  },
-  {
-   "for": "fsa-f20",
-   "formula": "net income + non-cash charges + interest − fixed capital investment − working capital investment",
-   "mistake": "adding back pre-tax interest"
-  },
-  {
-   "for": "fsa-f39",
-   "formula": "carrying amount − min(fair value − costs to sell, value in use)",
-   "mistake": "taking the lower amount"
-  },
-  {
-   "for": "fsa-f73",
-   "formula": "max(fair value, value in use)",
-   "mistake": "ignoring costs to sell"
-  },
-  {
-   "for": "fsa-f14",
-   "formula": "total liabilities / total equity",
-   "mistake": "liabilities / equity"
-  },
-  {
-   "for": "fsa-f14",
-   "formula": "total debt / total assets",
-   "mistake": "debt / assets"
-  },
-  {
-   "for": "fsa-f69",
-   "formula": "dividend payout ratio × ROE",
-   "mistake": "payout instead of retention"
-  },
-  {
-   "for": "fsa-f71",
-   "formula": "net income + depreciation − net working capital",
-   "mistake": "subtracting the NWC balance, not its increase"
-  },
-  {
-   "for": "fsa-f71",
-   "formula": "net income + depreciation + increase in net working capital",
-   "mistake": "adding the increase"
   }
  ]
 };

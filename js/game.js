@@ -30,7 +30,7 @@
   const LEVEL_XP = [0, 0];
   for (let L = 2; L <= MAX_LEVEL; L++) LEVEL_XP[L] = LEVEL_XP[L - 1] + Math.round(150 * Math.pow(1.22, L - 2) / 10) * 10;
   const SEAT_UNLOCK = [0, 0.3, 0.6];     // share of a topic's concepts introduced before seat 2 / 3 opens
-  const BASE_FEE = { term: 500, rterm: 600, formula: 800, rformula: 700 };
+  const BASE_FEE = { term: 500, rterm: 600, formula: 800, rformula: 700, rule: 700 };
   const AUM_PER_FEE = 40;
 
   // ---------- topics and staff ----------
@@ -109,16 +109,22 @@
     C.modules.forEach(m => MODS[mkey(tp, m.id)] = Object.assign({}, m, { tp, key: mkey(tp, m.id) }));
     C.terms.forEach(t => ITEMS[t.id] = { id: t.id, m: t.m, mk: mkey(tp, t.m), topic: tp, kind: "term", src: t });
     C.formulas.forEach(f => ITEMS[f.id] = { id: f.id, m: f.m, mk: mkey(tp, f.m), topic: tp, kind: "formula", src: f });
+    (C.rules || []).forEach(r => ITEMS[r.id] = { id: r.id, m: r.m, mk: mkey(tp, r.m), topic: tp, kind: "rule", src: r });
     C.questions.forEach(q => QUESTIONS.push(Object.assign({ tp, mk: mkey(tp, q.m) }, q)));
-    // new concepts per topic, module by module: term, term, formula ... (easy first)
+    // new concepts per topic, module by module: term, term, rule, formula ... (easy first)
     NEW_ORDER[tp] = [];
+    const PAT = ["t", "t", "r", "f"];
     C.modules.slice().sort((a, b) => a.id - b.id).forEach(mod => {
-      const terms = C.terms.filter(t => t.m === mod.id).map(t => t.id);
-      const forms = C.formulas.filter(f => f.m === mod.id).map(f => f.id);
+      const pools = {
+        t: C.terms.filter(t => t.m === mod.id).map(t => t.id),
+        r: (C.rules || []).filter(r => r.m === mod.id).map(r => r.id),
+        f: C.formulas.filter(f => f.m === mod.id).map(f => f.id)
+      };
       let i = 0;
-      while (terms.length || forms.length) {
-        const src = (i++ % 3 === 2 && forms.length) || !terms.length ? forms : terms;
-        NEW_ORDER[tp].push(src.shift());
+      while (pools.t.length || pools.r.length || pools.f.length) {
+        let k = PAT[i++ % PAT.length];
+        if (!pools[k].length) k = ["t", "r", "f"].find(x => pools[x].length);
+        NEW_ORDER[tp].push(pools[k].shift());
       }
     });
   });
@@ -460,6 +466,13 @@
     const forced = s && s.flipTo;
     const C = TC[it.topic];
     const base = { id: it.id, m: it.m, mk: it.mk, topic: it.topic, mode: pick.mode, retest: !!forced };
+    // a rule card is a hand-written question: its wrong answers come with it, and it is never flipped
+    if (it.kind === "rule") {
+      const r = it.src;
+      return { ...base, reverse: false, type: "rule", label: "Client question", ask: "Pick the right answer.", prompt: esc(r.q),
+        why: esc(r.q) + " <b>" + esc(r.a) + "</b>",
+        opts: shuffle([{ text: r.a, right: true }, ...r.x.map(t => ({ text: t, right: false }))]) };
+    }
     if (it.kind === "term") {
       const t = it.src;
       const reverse = forced ? forced === "reverse" : box >= 2 && Math.random() < 0.5;
@@ -679,7 +692,8 @@
 
   const CTX = { question: null };
   const strip = h => String(h).replace(/<[^>]+>/g, "");
-  const nameOf = id => ITEMS[id].kind === "term" ? ITEMS[id].src.term : ITEMS[id].src.name;
+  const clip = (s, n) => s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
+  const nameOf = id => ITEMS[id].kind === "term" ? ITEMS[id].src.term : ITEMS[id].kind === "rule" ? clip(ITEMS[id].src.q, 60) : ITEMS[id].src.name;
 
   function finishDeal(again) {
     CTX.question = null;
@@ -1111,6 +1125,7 @@
     const show = id => filter === "all" || status(id) === filter;
     const terms = C.terms.filter(t => t.m === m && show(t.id)).map(t => `<div class="li">${cardIcon(t.id)}${memChip(t.id)}<b>${esc(t.term)}</b><br>${esc(t.def)}</div>`).join("");
     const forms = C.formulas.filter(f => f.m === m && show(f.id)).map(f => `<div class="li">${cardIcon(f.id)}${memChip(f.id)}<b>${esc(f.name)}</b><br><span class="f">${esc(f.formula)}</span></div>`).join("");
+    const rules = (C.rules || []).filter(r => r.m === m && show(r.id)).map(r => `<div class="li">${cardIcon(r.id)}${memChip(r.id)}<b>${esc(r.q)}</b><br>${esc(r.a)}</div>`).join("");
     const traps = filter === "all" ? (C.traps || []).filter(t => t.m === m).map(t => `<div class="li">⚠ ${esc(t.text)}</div>`).join("") : "";
     const tabs = [{ k: "all", label: "All", n: st.total }].concat(STATES.map(x => ({ k: x.k, label: x.label, n: st[x.k] })));
     openWin(`<div class="win"><div class="head"><span>M${m} ${esc(M.short)}</span><small>Seen ${st.total - st.unseen}/${st.total} · ★${st.mastered}</small></div>
@@ -1118,8 +1133,9 @@
         ${stackBar(st)}${memBar(st)}
         <div class="tabs">${tabs.map(t => `<button data-f="${t.k}" class="${t.k === filter ? "on" : ""}" ${t.n || t.k === "all" ? "" : "disabled"}>${t.label} ${t.n}</button>`).join("")}</div>
         ${terms ? `<div class="sect">Key terms</div><div class="list">${terms}</div>` : ""}
+        ${rules ? `<div class="sect">Rules</div><div class="list">${rules}</div>` : ""}
         ${forms ? `<div class="sect">Formulas</div><div class="list">${forms}</div>` : ""}
-        ${!terms && !forms ? `<div class="note">Nothing in this group.</div>` : ""}
+        ${!terms && !rules && !forms ? `<div class="note">Nothing in this group.</div>` : ""}
         ${traps ? `<div class="sect">Exam traps</div><div class="list">${traps}</div>` : ""}
       </div>
       <div class="foot"><button id="back">Back</button><button id="focus" class="${isFocusKey(key) ? "" : "primary"}">${isFocusKey(key) ? "Unfocus" : "🎯 Focus"}</button><button id="x">Close</button></div></div>`, root => {
@@ -1304,7 +1320,7 @@
   function helpWin(first) {
     openWin(`<div class="win"><div class="head"><span>How to play</span></div>
       <div class="body">
-        <p><b>Clients bring deals.</b> Each deal is a term or formula from your CFA notes, sent to the desk for that topic. Answer right to close it and earn fees.</p>
+        <p><b>Clients bring deals.</b> Each deal is a term, rule or formula from your CFA notes, sent to the desk for that topic. Answer right to close it and earn fees.</p>
         <p><b>Your memory runs the firm.</b> Concepts you get right come back after 1, 2, 4, 7 and 12 days, never later than exam day. Miss one and it comes back after a few other calls, asked the other way round.</p>
         <p><b>Don't let the desk get sleepy.</b> Any overdue concept halves that desk's fees until you review it. Three right in a row sets it on fire 🔥.</p>
         <p><b>Grow the team.</b> Each CFA topic has its own desk. New seats open as you introduce more of a topic. Each analyst's stats change how much money they bring in.</p>
@@ -1381,7 +1397,7 @@
   function boot() {
     const setBar = () => document.documentElement.style.setProperty("--topbar-h", $("topbar").getBoundingClientRect().bottom + "px");
     setBar(); window.addEventListener("resize", setBar);
-    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-27b" }) });
+    Feedback.init({ context: () => ({ question: CTX.question, office: Scene.LAYOUTS[S.office].name, deals: S.deals, cash: S.cash, staff: S.staff.length, tombstones: tombCount(), level: S.level, daysLeft: daysLeft(), layout: Scene.debugInfo(), standalone: Reminders.installed(), build: "2026-10-28a" }) });
     Scene.init({ wrap: $("scene"), canvas: $("canvas"), overlay: $("overlay"), onStaffTap: staffWin, onCeoTap: ceoWin, bottomInset: () => $("stats").offsetHeight + 12 });
     Sfx.setMuted(S.muted);
     refreshScene(true);

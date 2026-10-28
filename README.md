@@ -17,7 +17,9 @@ It's a static site. Open `index.html` through any web server, or use the GitHub 
 ## Files
 
 - `index.html`, `css/style.css` — layout and Game Dev Story-style windows
-- `js/content.js` — study content
+- `js/content.js` — Equity study content
+- `content/<topic>-cards.md` — card files (terms, rules, formulas) written to the card spec; build with `python3 tools/build_cards.py content/fsa-cards.md js/content-fsa.js fsa fsa2`
+- `js/content-fsa.js` — FSA content, built from `content/fsa-cards.md`
 - `js/game.js` — game logic, spaced repetition, windows
 - `js/scene.js` — office scene, camera, client visits, effects
 - `js/sprites.js` — art layer (real sprites from `js/assets.js`, placeholder pixels otherwise)
